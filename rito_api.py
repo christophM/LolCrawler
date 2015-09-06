@@ -3,24 +3,23 @@ import time
 import json
 
 VERSION = "v2.2"
-SECONDS = 600.0
-N_REQUESTS = 500
-COOLDOWN_TIME = SECONDS / N_REQUESTS
+
 
 
 class RitoAPI:
     """Wraper for Riot APIs matchhistory and match endpoints"""
 
-    def __init__(self, api_key, region="euw"):
+    def __init__(self, api_key, time_between_requests = 600/500, region="euw"):
         self.api_key = api_key
         self.region = region
         self.url_stem = 'https://{region}.api.pvp.net/api/lol/{region}/{version}/{endpoint}/{entity}'
+        self.time_between_requests = time_between_requests
     
     def _build_request(self, endpoint, entity):
         return self.url_stem.format(region=self.region, version=VERSION, endpoint=endpoint, entity=entity)
 
     def _make_request(self, request_url, params={}):
-        time.sleep(COOLDOWN_TIME)
+        time.sleep(self.time_between_requests)
         params.update({'api_key': self.api_key})
         request_text = requests.get(request_url, params=params, verify=True).text
         return json.loads(request_text)

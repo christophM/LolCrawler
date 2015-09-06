@@ -10,13 +10,14 @@ from datetime import datetime
 class LolCrawler():
     """Crawler that randomly downloads summoner match histories and matches"""    
 
-    def __init__(self, api):
+    def __init__(self, api, get_complete_matchhistory):
         self.api = api
         self.summoner_ids_done = []
         self.summoner_ids = []
         self.match_ids_done = []
         self.match_ids = []
         self.counter = 0
+        self.get_complete_matchhistory = get_complete_matchhistory
 
     
     def start(self, start_summoner_id,  n_requests=1000):
@@ -46,7 +47,10 @@ class LolCrawler():
         print "Crawling summoner {summoner_id}".format(summoner_id=summoner_id)
 
         try:
-            match_history = self.api.get_complete_matchhistory(summoner_id)
+            if self.get_complete_matchhistory:
+                match_history = self.api.get_complete_matchhistory(summoner_id)
+            else:
+                match_history = self.api.get_matchhistory(summoner_id)["matches"]
             self.store_match_history(match_history, summoner_id)
             self.summoner_ids_done.append(summoner_id)
             match_ids = [x['matchId'] for x in match_history]
