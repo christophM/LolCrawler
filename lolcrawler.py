@@ -20,10 +20,10 @@ class LolCrawler():
         self.get_complete_matchhistory = get_complete_matchhistory
 
     
-    def start(self, start_summoner_id,  n_requests=1000):
+    def start(self, start_summoner_id):
         """Start infinite crawling loop"""
         self.summoner_ids = [start_summoner_id]
-        while self.counter < n_requests:
+        while True:
             self.crawl()
 
     def _store(self, file_url, entity_json):
