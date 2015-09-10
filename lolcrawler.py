@@ -10,7 +10,7 @@ from datetime import datetime
 class LolCrawler():
     """Crawler that randomly downloads summoner match histories and matches"""    
 
-    def __init__(self, api, get_complete_matchhistory):
+    def __init__(self, api, get_complete_matchhistory, db_client):
         self.api = api
         self.summoner_ids_done = []
         self.summoner_ids = []
@@ -18,6 +18,7 @@ class LolCrawler():
         self.match_ids = []
         self.counter = 0
         self.get_complete_matchhistory = get_complete_matchhistory
+        self.db_client = db_client
 
     
     def start(self, start_summoner_id):
@@ -26,50 +27,43 @@ class LolCrawler():
         while True:
             self.crawl()
 
-    def _store(self, file_url, entity_json):
-        f = open(file_url,'w')
-        f.write(entity_json)
-        f.close() 
 
-    def store_match_history(self, match_history, summoner_id):
-        match_history_json = json.dumps(match_history)
-        file_url = './matchhistories/{summoner_id}.json'.format(summoner_id=summoner_id)
-        self._store(file_url, match_history_json)
+    def _store(self, identifier, entity_type, entity):
+        """Stores matches and matchhistories"""
+        entity.update({'_id': identifier})
+        try: 
+            self.db_client[entity_type].insert_one(entity)
+        except:
+            print "Duplicate: Mongodb already inserted %s with id %s" % (entity_type, identifier)
 
-    def store_match(self, match, match_id):
-        match_json = json.dumps(match)
-        file_url = './matches/{match_id}.json'.format(match_id=match_id)
-        self._store(file_url, match_json)
 
     def crawl(self):
+
         self.counter += 1
         summoner_id = self.summoner_ids.pop()
         print "Crawling summoner {summoner_id}".format(summoner_id=summoner_id)
 
-        try:
-            if self.get_complete_matchhistory:
-                match_history = self.api.get_complete_matchhistory(summoner_id)
-            else:
-                match_history = self.api.get_matchhistory(summoner_id)["matches"]
-            self.store_match_history(match_history, summoner_id)
-            self.summoner_ids_done.append(summoner_id)
-            match_ids = [x['matchId'] for x in match_history]
-            self.match_ids.extend(match_ids)
-            ## get random match
-            random_number = np.random.choice(range(0,len(match_ids)))
-            match_id = match_ids[random_number]
-        except: 
-            print "Failed to download and store match history"
+        if self.get_complete_matchhistory:
+            match_history = self.api.get_complete_matchhistory(summoner_id)
+        else:
+            match_history = self.api.get_matchhistory(summoner_id)["matches"]
 
-        try:
-            match = self.api.get_match(match_id=match_id)
-            self.store_match(match, match_id)
-            summoner_ids = [x['player']['summonerId'] for x in match['participantIdentities']]
-            ## remove summoner ids the crawler has already seen
-            new_summoner_ids = list(set(summoner_ids) - set(self.summoner_ids_done))
-            self.summoner_ids = self.summoner_ids + list(np.random.choice(new_summoner_ids, len(new_summoner_ids), replace=False))
-        except:
-            print "Failed to download and store match"
+        match_history_insert = {'match_history': match_history}
+        self._store(identifier=summoner_id, entity_type='matchhistory', entity=match_history_insert)
+        self.summoner_ids_done.append(summoner_id)
+
+        match_ids = [x['matchId'] for x in match_history]
+        self.match_ids.extend(match_ids)
+        ## get random match
+        random_number = np.random.choice(range(0,len(match_ids)))
+        match_id = match_ids[random_number]
+        match = self.api.get_match(match_id=match_id)
+        self._store(identifier=match_id, entity_type='match', entity=match)
+
+        summoner_ids = [x['player']['summonerId'] for x in match['participantIdentities']]
+        ## remove summoner ids the crawler has already seen
+        new_summoner_ids = list(set(summoner_ids) - set(self.summoner_ids_done))
+        self.summoner_ids = self.summoner_ids + list(np.random.choice(new_summoner_ids, len(new_summoner_ids), replace=False))
 
 
 
