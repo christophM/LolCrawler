@@ -33,6 +33,8 @@ And kill LolCrawler by checking if the script is still running, checking the pro
 kill <process-id>
 ```
 ## Changelog
+### v0.2
+Write to MongoDB, not to disk
 ### v0.1
 Initial release
 
