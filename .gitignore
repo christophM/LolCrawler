@@ -2,3 +2,5 @@ nohup.out
 *.pyc
 *.*~
 config.local.py
+.ipynb_checkpoints/
+*.ipynb
