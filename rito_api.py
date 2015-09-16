@@ -1,6 +1,5 @@
 import requests
 import time
-import json
 
 VERSION = "v2.2"
 
@@ -21,8 +20,8 @@ class RitoAPI:
     def _make_request(self, request_url, params={}):
         time.sleep(self.time_between_requests)
         params.update({'api_key': self.api_key})
-        request_text = requests.get(request_url, params=params, verify=True).text
-        return json.loads(request_text)
+        request = requests.get(request_url, params=params, verify=True)
+        return request.json()
         
     def get_matchlist(self, summoner_id): 
         request_url = self._build_request(endpoint='matchlist/by-summoner', entity=summoner_id)

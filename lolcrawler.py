@@ -1,7 +1,6 @@
 import sys
 import time
 import numpy as np 
-import json
 from rito_api import RitoAPI
 from datetime import datetime
 from pymongo.errors import DuplicateKeyError
