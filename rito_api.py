@@ -4,6 +4,24 @@ import time
 VERSION = "v2.2"
 
 
+class ApiResponseError(Exception):
+    """Most common errors with Rito API """
+    errors = {400: "Bad request",
+              401: "Unauthorized. Is something wrong with the API key?",
+              404: "Data not found",
+              429: "Too many requests. Maybe reduce number of requests per minute?",
+              500: "Internal server error",
+              503: "Service unavailable"}
+
+    def __init__(self, status_code):
+        self.status_code = status_code
+
+    def __str__(self):
+        if self.status_code in self.errors.keys():
+            return self.errors.get(self.status_code)
+        else:
+            return "Http request error with code %s" % (self.status_code)
+
 
 class RitoAPI:
     """Wraper for Riot APIs matchhistory and match endpoints"""
@@ -13,7 +31,7 @@ class RitoAPI:
         self.region = region
         self.url_stem = 'https://{region}.api.pvp.net/api/lol/{region}/{version}/{endpoint}/{entity}'
         self.time_between_requests = time_between_requests
-    
+
     def _build_request(self, endpoint, entity):
         return self.url_stem.format(region=self.region, version=VERSION, endpoint=endpoint, entity=entity)
 
@@ -21,17 +39,14 @@ class RitoAPI:
         time.sleep(self.time_between_requests)
         params.update({'api_key': self.api_key})
         request = requests.get(request_url, params=params, verify=True)
+        if request.status_code != 200:
+            raise ApiResponseError(request.status_code)
         return request.json()
-        
-    def get_matchlist(self, summoner_id): 
+
+    def get_matchlist(self, summoner_id):
         request_url = self._build_request(endpoint='matchlist/by-summoner', entity=summoner_id)
         return self._make_request(request_url)
-    
+
     def get_match(self, match_id, include_timeline=True):
         request_url = self._build_request(endpoint='match', entity=match_id)
         return self._make_request(request_url, params={'includeTimeline': include_timeline})
-
-
-
-
-
