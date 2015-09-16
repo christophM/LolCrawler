@@ -4,7 +4,7 @@ import numpy as np
 import json
 from rito_api import RitoAPI
 from datetime import datetime
-
+from pymongo.errors import DuplicateKeyError
 
 
 class LolCrawler():
@@ -32,7 +32,7 @@ class LolCrawler():
         entity.update({'_id': identifier})
         try: 
             self.db_client[entity_type].insert_one(entity)
-        except:
+        except DuplicateKeyError:
             print "Duplicate: Mongodb already inserted %s with id %s" % (entity_type, identifier)
 
 
