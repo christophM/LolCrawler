@@ -8,16 +8,15 @@ from datetime import datetime
 
 
 class LolCrawler():
-    """Crawler that randomly downloads summoner match histories and matches"""    
+    """Crawler that randomly downloads summoner match lists and matches"""    
 
-    def __init__(self, api, get_complete_matchhistory, db_client):
+    def __init__(self, api, db_client):
         self.api = api
         self.summoner_ids_done = []
         self.summoner_ids = []
         self.match_ids_done = []
         self.match_ids = []
         self.counter = 0
-        self.get_complete_matchhistory = get_complete_matchhistory
         self.db_client = db_client
 
     
@@ -29,7 +28,7 @@ class LolCrawler():
 
 
     def _store(self, identifier, entity_type, entity):
-        """Stores matches and matchhistories"""
+        """Stores matches and matchlists"""
         entity.update({'_id': identifier})
         try: 
             self.db_client[entity_type].insert_one(entity)
@@ -43,16 +42,12 @@ class LolCrawler():
         summoner_id = self.summoner_ids.pop()
         print "Crawling summoner {summoner_id}".format(summoner_id=summoner_id)
 
-        if self.get_complete_matchhistory:
-            match_history = self.api.get_complete_matchhistory(summoner_id)
-        else:
-            match_history = self.api.get_matchhistory(summoner_id)["matches"]
+        match_list = self.api.get_matchlist(summoner_id)
 
-        match_history_insert = {'match_history': match_history}
-        self._store(identifier=summoner_id, entity_type='matchhistory', entity=match_history_insert)
+        self._store(identifier=summoner_id, entity_type='matchlist', entity=match_list)
         self.summoner_ids_done.append(summoner_id)
 
-        match_ids = [x['matchId'] for x in match_history]
+        match_ids = [x['matchId'] for x in match_list['matches']]
         self.match_ids.extend(match_ids)
         ## get random match
         random_number = np.random.choice(range(0,len(match_ids)))

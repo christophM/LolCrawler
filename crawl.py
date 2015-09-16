@@ -18,7 +18,7 @@ if __name__=="__main__":
     api = RitoAPI(config['api_key'], time_between_requests)
 
     ## Initialise crawler
-    crawler =  LolCrawler(api, get_complete_matchhistory=config['get_complete_matchhistory'], db_client=db)
+    crawler =  LolCrawler(api, db_client=db)
 
     crawler.start(config['summoner_seed_id'])
 

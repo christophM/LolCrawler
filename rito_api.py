@@ -23,26 +23,10 @@ class RitoAPI:
         params.update({'api_key': self.api_key})
         request_text = requests.get(request_url, params=params, verify=True).text
         return json.loads(request_text)
-
-    def get_matchhistory(self, summoner_id, begin_index=None, end_index=None):
-        request_url = self._build_request(endpoint='matchhistory', entity=summoner_id)
-        return self._make_request(request_url, params={'beginIndex': begin_index, 'endIndex': end_index})
-
-    def get_complete_matchhistory(self, summoner_id):
-        """Loop through paginated matchhistory"""
-        begin_index = 0
-        end_index = 15
-        match_history = self.get_matchhistory(summoner_id, begin_index=begin_index, end_index=end_index)
-        new_matches = match_history["matches"]
-        matches = new_matches
-
-        while(len(new_matches) == 15):
-            begin_index += 15
-            end_index += 15
-            match_history = self.get_matchhistory(summoner_id, begin_index=begin_index, end_index=end_index)
-            new_matches = match_history["matches"]
-            matches += new_matches
-        return matches
+        
+    def get_matchlist(self, summoner_id): 
+        request_url = self._build_request(endpoint='matchlist/by-summoner', entity=summoner_id)
+        return self._make_request(request_url)
     
     def get_match(self, match_id, include_timeline=True):
         request_url = self._build_request(endpoint='match', entity=match_id)
