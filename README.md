@@ -36,10 +36,12 @@ kill <process-id>
 ### v0.3
 - Change from Riot Api's matchhistory endpoint to matchlist, since matchhistory endpoint will be deprecated starting 2015/09/22
 - Be more intelligent about error handling and make crawler more robust
+
 ### v0.2
-Write to MongoDB, not to disk
+- Write to MongoDB, not to disk
+
 ### v0.1
-Initial release
+- Initial release
 
 ## Disclaimer
 LolCrawler isn’t endorsed by Riot Games and doesn’t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing League of Legends. League of Legends and Riot Games are trademarks or registered trademarks of Riot Games, Inc. League of Legends © Riot Games, Inc.
