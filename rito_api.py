@@ -22,6 +22,17 @@ class ApiResponseError(Exception):
         else:
             return "Http request error with code %s" % (self.status_code)
 
+class NotFoundError(ApiResponseError):
+    pass
+
+class RateLimitExceeded(ApiResponseError):
+    pass
+
+class RitoServerError(ApiResponseError):
+    pass
+
+
+
 
 class RitoAPI:
     """Wraper for Riot APIs matchhistory and match endpoints"""
@@ -39,7 +50,13 @@ class RitoAPI:
         time.sleep(self.time_between_requests)
         params.update({'api_key': self.api_key})
         request = requests.get(request_url, params=params, verify=True)
-        if request.status_code != 200:
+        if request.status_code == 404:
+            raise NotFoundError(request.status_code)
+        elif request.status_code == 429:
+            raise RateLimitExceeded(request.status_code)
+        elif request.status_code in [500, 503]:
+            raise RitoServerError(request.status_code)
+        elif request.status_code != 200:
             raise ApiResponseError(request.status_code)
         return request.json()
 
