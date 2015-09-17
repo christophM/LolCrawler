@@ -1,29 +1,29 @@
 # LolCrawler
-Crawls League of Legends match histories and match data and stores the data
+Crawls League of Legends summoner match lists and match data and stores the data
 
 
 ## What it does
 1. Start with the seed summoner as defined in config.py
-2. Download match history of the chosen summoner and store it in MongoDB
-3. Choose random match from the match history
+2. Download match list of the chosen summoner and store it in MongoDB
+3. Choose random match from the match list
 4. Download match via API and store it in MongoDB
 5. Choose random player from the downloaded match and continue with step 2
 
 ## Usage
-Place your Riot API key in config.py. LolCrawler needs a region and a summoner id to start crawling. The config.py file provides a summoner seed for Europe West (EUW). You need to have MongoDB installed for storing the match and match history JSON files. 
+Place your Riot API key in config.py. LolCrawler needs a region and a summoner id to start crawling. The config.py file provides a summoner seed for Europe West (EUW). You need to have MongoDB installed for storing the match and match list JSON.
 
-Start crawling: 
+Start crawling:
 
 ```bash
-python crawl.py 
+python crawl.py
 ```
 
-Run the script in the background by using nohup: 
+Run the script in the background by using nohup:
 ```bash
 nohup python -u crawl.py &
 ```
 
-Check if the script is still running with: 
+Check if the script is still running with:
 ```bash
 ps ax | grep crawl.py
 ```
@@ -39,7 +39,6 @@ kill <process-id>
 
 ### v0.2
 - Write to MongoDB, not to disk
-
 ### v0.1
 - Initial release
 
