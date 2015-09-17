@@ -33,6 +33,9 @@ And kill LolCrawler by checking if the script is still running, checking the pro
 kill <process-id>
 ```
 ## Changelog
+### v0.3
+- Change from Riot Api's matchhistory endpoint to matchlist, since matchhistory endpoint will be deprecated starting 2015/09/22
+- Be more intelligent about error handling and make crawler more robust
 ### v0.2
 Write to MongoDB, not to disk
 ### v0.1
