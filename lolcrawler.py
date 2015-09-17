@@ -63,7 +63,7 @@ class LolCrawler():
             random_number = np.random.choice(range(0,len(match_ids)))
             match_id = match_ids[random_number]
             self.crawl_match(match_id)
-        except NotFoundError as e: 
+        except (NotFoundError, KeyError) as e: 
             print e
             self.crawl()
         except (RitoServerError, RateLimitExceeded) as e:
