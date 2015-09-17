@@ -69,7 +69,7 @@ class LolCrawler():
         except (RitoServerError, RateLimitExceeded) as e:
             print e
             print "Trying again in 30 seconds"
-            time.Sleep(30)
+            time.sleep(30)
             self.crawl()
 
 
