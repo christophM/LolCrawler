@@ -13,8 +13,9 @@ MATCH_COLLECTION = "match"
 class LolCrawler():
     """Crawler that randomly downloads summoner match lists and matches"""
 
-    def __init__(self, api, db_client):
+    def __init__(self, api, db_client, region):
         self.api = api
+        self.region = region
         self.summoner_ids_done = []
         self.summoner_ids = []
         self.match_ids_done = []
@@ -25,11 +26,11 @@ class LolCrawler():
     def start(self, start_summoner_id):
         """Start infinite crawling loop"""
 
-        last_summoner_cursor = self.db_client[MATCHLIST_COLLECTION].find().sort("$natural", pymongo.DESCENDING)
+        last_summoner_cursor = self.db_client[MATCHLIST_COLLECTION].find({"region": self.region}).sort("$natural", pymongo.DESCENDING)
         if last_summoner_cursor.count() == 0:
             self.summoner_ids = [start_summoner_id]
         else:
-            self.summoner_ids = [last_summoner_cursor.next()["_id"] for x in range(0,10)]
+            self.summoner_ids = [last_summoner_cursor.next()["_id"]]
         while True:
             self.crawl()
 
@@ -37,6 +38,7 @@ class LolCrawler():
     def _store(self, identifier, entity_type, entity, upsert=False):
         """Stores matches and matchlists"""
         entity.update({'_id': identifier})
+        entity.update({'region': self.region})
         try:
             if upsert:
                 self.db_client[entity_type].replace_one(filter={"_id": identifier}, replacement = entity, upsert=True)

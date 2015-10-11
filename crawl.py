@@ -15,10 +15,12 @@ if __name__=="__main__":
     api_key = config['api_key']
     if api_key=='':
         raise LookupError("Provide your API key in config.py")
-    api = RitoAPI(config['api_key'], time_between_requests)
+
+    region=config["region"]
+    api = RitoAPI(config['api_key'], time_between_requests, region=region)
 
     ## Initialise crawler
-    crawler =  LolCrawler(api, db_client=db)
+    crawler =  LolCrawler(api, db_client=db, region=region)
 
     crawler.start(config['summoner_seed_id'])
 
