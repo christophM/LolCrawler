@@ -36,6 +36,7 @@ kill <process-id>
 
 ### v0.4
 - If there are already matchlists inserted in MongoDB, start with latest summoner id as seed summoner, instead of seed summoner id from config file
+- Move files in own module
 
 ### v0.3
 - Change from Riot Api's matchhistory endpoint to matchlist, since matchhistory endpoint will be deprecated starting 2015/09/22
