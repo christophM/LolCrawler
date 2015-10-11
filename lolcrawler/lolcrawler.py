@@ -5,6 +5,9 @@ from rito_api import RitoAPI, NotFoundError, RateLimitExceeded, RitoServerError
 from datetime import datetime
 from pymongo.errors import DuplicateKeyError, ServerSelectionTimeoutError
 
+## TODO:
+# overwrite matchlist instead of not inserting
+# in start(): ifelse(has summoner in DB with this region, random id, else start_summoner)
 
 class LolCrawler():
     """Crawler that randomly downloads summoner match lists and matches"""
@@ -25,11 +28,14 @@ class LolCrawler():
             self.crawl()
 
 
-    def _store(self, identifier, entity_type, entity):
+    def _store(self, identifier, entity_type, entity, upsert=False):
         """Stores matches and matchlists"""
         entity.update({'_id': identifier})
         try:
-            self.db_client[entity_type].insert_one(entity)
+            if upsert:
+                self.db_client[entity_type].replace_one(filter={"_id": identifier}, replacement = entity, upsert=True)
+            else:
+                self.db_client[entity_type].insert_one(entity)
         except DuplicateKeyError:
             print "Duplicate: Mongodb already inserted %s with id %s" % (entity_type, identifier)
         except ServerSelectionTimeoutError, e:
@@ -41,7 +47,7 @@ class LolCrawler():
         """Crawls matchlist of given summoner,
         stores it and saves the matchIds"""
         matchlist = self.api.get_matchlist(summoner_id)
-        self._store(identifier=summoner_id, entity_type='matchlist', entity=matchlist)
+        self._store(identifier=summoner_id, entity_type='matchlist', entity=matchlist, upsert=True)
         self.summoner_ids_done.append(summoner_id)
         match_ids = [x['matchId'] for x in matchlist['matches']]
         self.match_ids.extend(match_ids)
