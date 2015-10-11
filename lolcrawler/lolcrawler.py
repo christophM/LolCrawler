@@ -4,10 +4,11 @@ import numpy as np
 from rito_api import RitoAPI, NotFoundError, RateLimitExceeded, RitoServerError
 from datetime import datetime
 from pymongo.errors import DuplicateKeyError, ServerSelectionTimeoutError
+import pymongo
 
-## TODO:
-# overwrite matchlist instead of not inserting
-# in start(): ifelse(has summoner in DB with this region, random id, else start_summoner)
+MATCHLIST_COLLECTION = "matchlist"
+MATCH_COLLECTION = "match"
+
 
 class LolCrawler():
     """Crawler that randomly downloads summoner match lists and matches"""
@@ -23,7 +24,12 @@ class LolCrawler():
 
     def start(self, start_summoner_id):
         """Start infinite crawling loop"""
-        self.summoner_ids = [start_summoner_id]
+
+        last_summoner_cursor = self.db_client[MATCHLIST_COLLECTION].find().sort("$natural", pymongo.DESCENDING)
+        if last_summoner_cursor.count() == 0:
+            self.summoner_ids = [start_summoner_id]
+        else:
+            self.summoner_ids = [last_summoner_cursor.next()["_id"] for x in range(0,10)]
         while True:
             self.crawl()
 
@@ -47,7 +53,7 @@ class LolCrawler():
         """Crawls matchlist of given summoner,
         stores it and saves the matchIds"""
         matchlist = self.api.get_matchlist(summoner_id)
-        self._store(identifier=summoner_id, entity_type='matchlist', entity=matchlist, upsert=True)
+        self._store(identifier=summoner_id, entity_type=MATCHLIST_COLLECTION, entity=matchlist, upsert=True)
         self.summoner_ids_done.append(summoner_id)
         match_ids = [x['matchId'] for x in matchlist['matches']]
         self.match_ids.extend(match_ids)
@@ -55,7 +61,7 @@ class LolCrawler():
 
     def crawl_match(self, match_id):
         match = self.api.get_match(match_id=match_id)
-        self._store(identifier=match_id, entity_type='match', entity=match)
+        self._store(identifier=match_id, entity_type=MATCH_COLLECTION, entity=match)
         summoner_ids = [x['player']['summonerId'] for x in match['participantIdentities']]
         ## remove summoner ids the crawler has already seen
         new_summoner_ids = list(set(summoner_ids) - set(self.summoner_ids_done))
