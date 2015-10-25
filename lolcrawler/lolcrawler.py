@@ -30,7 +30,9 @@ class LolCrawler():
         if last_summoner_cursor.count() == 0:
             self.summoner_ids = [start_summoner_id]
         else:
-            self.summoner_ids = [last_summoner_cursor.next()["_id"]]
+            self.summoner_ids = [last_summoner_cursor.next()["_id"],
+                                 last_summoner_cursor.next()["_id"],
+                                 last_summoner_cursor.next()["_id"]]
         while True:
             self.crawl()
 
@@ -77,9 +79,7 @@ class LolCrawler():
 
         try:
             match_ids = self.crawl_matchlist(summoner_id)
-            ## get random match
-            random_number = np.random.choice(range(0,len(match_ids)))
-            match_id = match_ids[random_number]
+            match_id = match_ids[0]
             self.crawl_match(match_id)
         except (NotFoundError, KeyError) as e:
             print e
