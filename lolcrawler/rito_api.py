@@ -64,6 +64,6 @@ class RitoAPI:
         request_url = self._build_request(endpoint='matchlist/by-summoner', entity=summoner_id)
         return self._make_request(request_url)
 
-    def get_match(self, match_id, include_timeline=True):
+    def get_match(self, match_id, include_timeline=False):
         request_url = self._build_request(endpoint='match', entity=match_id)
         return self._make_request(request_url, params={'includeTimeline': include_timeline})

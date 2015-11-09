@@ -13,9 +13,10 @@ MATCH_COLLECTION = "match"
 class LolCrawler():
     """Crawler that randomly downloads summoner match lists and matches"""
 
-    def __init__(self, api, db_client, region):
+    def __init__(self, api, db_client, region, include_timeline=False):
         self.api = api
         self.region = region
+        self.include_timeline = include_timeline
         self.summoner_ids_done = []
         self.summoner_ids = []
         self.match_ids_done = []
