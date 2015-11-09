@@ -32,7 +32,16 @@ And kill LolCrawler by checking if the script is still running, checking the pro
 ```bash
 kill <process-id>
 ```
+
+If something goes wrong, have a look at the log file named crawler.log.
+
+
 ## Changelog
+### v0.5
+- Be smarter about match and summoner sampling
+- By default, don't fetch the timeline
+- Sample only from the latest matches of a summoner
+- Introduce logging
 
 ### v0.4
 - If there are already matchlists inserted in MongoDB, start with latest summoner id as seed summoner, instead of seed summoner id from config file
