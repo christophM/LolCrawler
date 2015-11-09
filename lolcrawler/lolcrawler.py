@@ -5,6 +5,23 @@ from rito_api import RitoAPI, NotFoundError, RateLimitExceeded, RitoServerError
 from datetime import datetime
 from pymongo.errors import DuplicateKeyError, ServerSelectionTimeoutError
 import pymongo
+import logging
+
+logger = logging.getLogger(__name__)
+
+logger.setLevel(logging.INFO)
+
+# create a file handler
+
+handler = logging.FileHandler('crawler.log')
+handler.setLevel(logging.INFO)
+
+# create a logging format
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
+logger.addHandler(handler)
+
 
 MATCHLIST_COLLECTION = "matchlist"
 MATCH_COLLECTION = "match"
@@ -27,12 +44,15 @@ class LolCrawler():
     def start(self, start_summoner_id):
         """Start infinite crawling loop"""
 
+        logger.info("Start crawling")
         last_summoner_cursor = self.db_client[MATCHLIST_COLLECTION].find({"region": self.region}).sort("$natural", pymongo.DESCENDING)
         if last_summoner_cursor.count() == 0:
             self.summoner_ids = [start_summoner_id]
+            logger.info("No summoner ids found in database, starting with seed summoner")
         else:
             for i in range(0, 100):
                 self.summoner_ids += [last_summoner_cursor.next()["_id"]]
+            logger.info("Starting with latest summoner ids in database")
         while True:
             self.crawl()
 
@@ -47,10 +67,9 @@ class LolCrawler():
             else:
                 self.db_client[entity_type].insert_one(entity)
         except DuplicateKeyError:
-            print "Duplicate: Mongodb already inserted %s with id %s" % (entity_type, identifier)
+            logger.info("Duplicate: Mongodb already inserted {entity_type} with id {identifier}".format(entity_type=entity_type, identifier=identifier))
         except ServerSelectionTimeoutError, e:
-            print e
-            print "Could not reach Mongodb"
+            logger.error("Could not reach Mongodb", exc_info=True)
             sys.exit(1)
 
     def crawl_matchlist(self, summoner_id):
@@ -74,7 +93,7 @@ class LolCrawler():
 
     def crawl(self):
         summoner_id = self.summoner_ids.pop()
-        print "Crawling summoner {summoner_id}".format(summoner_id=summoner_id)
+        logger.info("Crawling summoner {summoner_id}".format(summoner_id=summoner_id))
 
         try:
             match_ids = self.crawl_matchlist(summoner_id)
@@ -86,8 +105,8 @@ class LolCrawler():
             print e
             self.crawl()
         except (RitoServerError, RateLimitExceeded) as e:
-            print e
-            print "Trying again in 30 seconds"
+            logging.exception(e)
+            logger.info("Trying again in 30 seconds")
             time.sleep(30)
             self.crawl()
 
