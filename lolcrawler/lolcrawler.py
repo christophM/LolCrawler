@@ -31,9 +31,8 @@ class LolCrawler():
         if last_summoner_cursor.count() == 0:
             self.summoner_ids = [start_summoner_id]
         else:
-            self.summoner_ids = [last_summoner_cursor.next()["_id"],
-                                 last_summoner_cursor.next()["_id"],
-                                 last_summoner_cursor.next()["_id"]]
+            for i in range(0, 100):
+                self.summoner_ids += [last_summoner_cursor.next()["_id"]]
         while True:
             self.crawl()
 
@@ -65,22 +64,23 @@ class LolCrawler():
         return match_ids
 
     def crawl_match(self, match_id):
-        match = self.api.get_match(match_id=match_id)
+        match = self.api.get_match(match_id=match_id, include_timeline=self.include_timeline)
         self._store(identifier=match_id, entity_type=MATCH_COLLECTION, entity=match)
         summoner_ids = [x['player']['summonerId'] for x in match['participantIdentities']]
         ## remove summoner ids the crawler has already seen
         new_summoner_ids = list(set(summoner_ids) - set(self.summoner_ids_done))
-        self.summoner_ids = self.summoner_ids + list(np.random.choice(new_summoner_ids, len(new_summoner_ids), replace=False))
+        self.summoner_ids = new_summoner_ids + self.summoner_ids
 
 
     def crawl(self):
-
         summoner_id = self.summoner_ids.pop()
         print "Crawling summoner {summoner_id}".format(summoner_id=summoner_id)
 
         try:
             match_ids = self.crawl_matchlist(summoner_id)
-            match_id = match_ids[0]
+            ## Choose from last ten matches
+            random_match_id = np.random.choice(range(0, min(10, len(match_ids))))
+            match_id = match_ids[random_match_id]
             self.crawl_match(match_id)
         except (NotFoundError, KeyError) as e:
             print e
