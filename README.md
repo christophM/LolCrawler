@@ -37,6 +37,11 @@ If something goes wrong, have a look at the log file named crawler.log.
 
 
 ## Changelog
+### v0.6
+- Adding patch fields to match, extracted from the field "matchVersion"
+  - "patch": The patch version as a string, for example "5.24"
+  - "patchMajorNumeric": The major patch version as integer, resembling the season, for example 5
+  - "patchMinorNumeric": The minor patch version as integer, for example 24
 ### v0.5
 - Be smarter about match and summoner sampling
 - By default, don't fetch the timeline
