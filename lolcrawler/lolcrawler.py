@@ -1,11 +1,12 @@
 import sys
 import time
 import numpy as np
-from rito_api import RitoAPI, NotFoundError, RateLimitExceeded, RitoServerError
+from .rito import RitoAPI, NotFoundError, RateLimitExceeded, RitoServerError
 from datetime import datetime
 from pymongo.errors import DuplicateKeyError, ServerSelectionTimeoutError
 import pymongo
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ class LolCrawler():
                 self.db_client[entity_type].insert_one(entity)
         except DuplicateKeyError:
             logger.info("Duplicate: Mongodb already inserted {entity_type} with id {identifier}".format(entity_type=entity_type, identifier=identifier))
-        except ServerSelectionTimeoutError, e:
+        except ServerSelectionTimeoutError as e:
             logger.error("Could not reach Mongodb", exc_info=True)
             sys.exit(1)
 
@@ -83,7 +84,11 @@ class LolCrawler():
         return match_ids
 
     def crawl_match(self, match_id):
+
         match = self.api.get_match(match_id=match_id, include_timeline=self.include_timeline)
+        match["patch"] = match["matchVersion"][0:4]
+        match["patchMajorNumeric"] = int(re.findall("([0-9]+)\.[0-9]+\.", match["matchVersion"])[0])
+        match["patchMinorNumeric"] = int(re.findall("[0-9]+\.([0-9]+)\.", match["matchVersion"])[0])
         self._store(identifier=match_id, entity_type=MATCH_COLLECTION, entity=match)
         summoner_ids = [x['player']['summonerId'] for x in match['participantIdentities']]
         ## remove summoner ids the crawler has already seen
@@ -102,12 +107,12 @@ class LolCrawler():
             match_id = match_ids[random_match_id]
             self.crawl_match(match_id)
         except (NotFoundError, KeyError) as e:
-            print e
+            logger.exception(e)
             self.crawl()
         except (RitoServerError, RateLimitExceeded) as e:
-            logging.exception(e)
-            logger.info("Trying again in 30 seconds")
-            time.sleep(30)
+            logger.info(e)
+            logger.info("Trying again in 5 seconds")
+            time.sleep(5)
             self.crawl()
 
 

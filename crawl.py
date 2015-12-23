@@ -1,5 +1,5 @@
 from lolcrawler.lolcrawler import LolCrawler
-from lolcrawler.rito_api import RitoAPI
+from lolcrawler.rito import RitoAPI
 from config import config
 from pymongo import MongoClient
 

@@ -49,7 +49,7 @@ class RitoAPI:
     def _make_request(self, request_url, params={}):
         time.sleep(self.time_between_requests)
         params.update({'api_key': self.api_key})
-        request = requests.get(request_url, params=params, verify=True)
+        request = requests.get(request_url, params=params)
         if request.status_code == 404:
             raise NotFoundError(request.status_code)
         elif request.status_code == 429:
