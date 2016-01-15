@@ -64,7 +64,7 @@ def update_aggregates(db):
                 "majorPatch": match["extractions"]["patchMajorNumeric"],
                 "patch": match["extractions"]["patch"],
                 "matchType": match["matchType"],
-                "queuType": match["queueType"],
+                "queueType": match["queueType"],
                 "mapId": match["mapId"],
                 "role": x["timeline"]["role"],
                 "lane": x["timeline"]["lane"],
