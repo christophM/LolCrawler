@@ -35,8 +35,31 @@ kill <process-id>
 
 If something goes wrong, have a look at the log file named crawler.log.
 
+### Champion statistics
+
+You can create a MongoDB table "champStats" by running the following script:
+```bash
+python aggregate.py update
+```
+The script sequentially processes the matches. It creates statistic about champions: number of matches, victories and defeats.
+These numbers are split by patch, lane, role and so on. The script sets a flag for processed matches. So if you run
+update again, it will only count the new matches. It should be no problem to run the crawler at the same time as the aggregation.
+If you want to remove the flags and delete the aggregations, run:
+```bash
+python aggregate.py reset
+```
+And to first reset and then update:
+```bash
+python aggregate.py reprocess
+```
+
 
 ## Changelog
+### v0.7
+- Added script that creates a MongodB table with champion statistics by processing the matches.
+  The statistics are count of matches, victories and defeats, grouped by patch, champion, role, lane and so on
+- Instead of nesting extracted information (like the patch numbers) in the raw data, a field "extractions" was added on top
+  level of the document structure and additional information will be nested in "extractions"
 ### v0.6
 - Adding patch fields to match, extracted from the field "matchVersion"
   - "patch": The patch version as a string, for example "5.24"
