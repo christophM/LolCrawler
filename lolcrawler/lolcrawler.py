@@ -83,11 +83,10 @@ class LolCrawler():
         return match_ids
 
     def crawl_match(self, match_id):
-
+        """Crawl match with given match_id,
+        stores it and saves the matchID"""
         match = self.api.get_match(match_id=match_id, include_timeline=self.include_timeline)
-        match["patch"] = match["matchVersion"][0:4]
-        match["patchMajorNumeric"] = int(re.findall("([0-9]+)\.[0-9]+\.", match["matchVersion"])[0])
-        match["patchMinorNumeric"] = int(re.findall("[0-9]+\.([0-9]+)\.", match["matchVersion"])[0])
+        match["extractions"] = extract_match_infos(match)
         self._store(identifier=match_id, entity_type=MATCH_COLLECTION, entity=match)
         summoner_ids = [x['player']['summonerId'] for x in match['participantIdentities']]
         ## remove summoner ids the crawler has already seen
@@ -117,7 +116,9 @@ class LolCrawler():
 
 
 
-
-
-
-
+def extract_match_infos(match):
+    extractions = {}
+    extractions["patchMajorNumeric"] = int(re.findall("([0-9]+)\.[0-9]+\.", match["matchVersion"])[0])
+    extractions["patchMinorNumeric"] = int(re.findall("[0-9]+\.([0-9]+)\.", match["matchVersion"])[0])
+    extractions["patch"] = str(re.findall("([0-9]+\.[0-9]+)\.", match["matchVersion"])[0])
+    return extractions
