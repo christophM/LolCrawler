@@ -61,7 +61,6 @@ class LolCrawler():
     def _store(self, identifier, entity_type, entity, upsert=False):
         """Stores matches and matchlists"""
         entity.update({'_id': identifier})
-        entity.update({'region': self.region})
         try:
             if upsert:
                 self.db_client[entity_type].replace_one(filter={"_id": identifier}, replacement = entity, upsert=True)
