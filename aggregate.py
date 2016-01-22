@@ -70,7 +70,8 @@ def update_aggregates(db):
                 "lane": x["timeline"]["lane"],
                 "teamId": x["teamId"],
                 "championName": my_champ_dict[str(x["championId"])],
-                "championId": x["championId"]
+                "championId": x["championId"],
+                "highestAchievedSeasonTier": x["highestAchievedSeasonTier"]
                 }
 
 
