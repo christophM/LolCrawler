@@ -20,7 +20,7 @@ if __name__=="__main__":
     api = RitoAPI(config['api_key'], time_between_requests, region=region)
 
     ## Initialise crawler
-    crawler =  LolCrawler(api, db_client=db, region=region)
+    crawler =  LolCrawler(api, db_client=db, region=region, include_timeline=config["include_timeline"])
 
     crawler.start(config['summoner_seed_id'])
 
