@@ -47,7 +47,7 @@ class LolCrawler():
         """Start infinite crawling loop"""
 
         logger.info("Start crawling")
-        last_summoner_cursor = self.db_client[MATCHLIST_COLLECTION].find({"region": self.region}).sort("$natural", pymongo.DESCENDING)
+        last_summoner_cursor = self.db_client[MATCHLIST_COLLECTION].find({"extractions.region": self.region}).sort("$natural", pymongo.DESCENDING)
         if last_summoner_cursor.count() == 0:
             self.summoner_ids = [start_summoner_id]
             logger.info("No summoner ids found in database, starting with seed summoner")
@@ -77,6 +77,7 @@ class LolCrawler():
         """Crawls matchlist of given summoner,
         stores it and saves the matchIds"""
         matchlist = self.api.get_matchlist(summoner_id)
+        matchlist["extractions"] = {"region": self.region}
         self._store(identifier=summoner_id, entity_type=MATCHLIST_COLLECTION, entity=matchlist, upsert=True)
         self.summoner_ids_done.append(summoner_id)
         match_ids = [x['matchId'] for x in matchlist['matches']]
