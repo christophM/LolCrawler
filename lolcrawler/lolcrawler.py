@@ -7,6 +7,7 @@ from pymongo.errors import DuplicateKeyError, ServerSelectionTimeoutError
 import pymongo
 import logging
 import re
+from collections import Counter
 
 logger = logging.getLogger(__name__)
 
@@ -117,8 +118,23 @@ class LolCrawler():
 
 
 def extract_match_infos(match):
+    """Extract additional information from the raw match data
+    """
     extractions = {}
     extractions["patchMajorNumeric"] = int(re.findall("([0-9]+)\.[0-9]+\.", match["matchVersion"])[0])
     extractions["patchMinorNumeric"] = int(re.findall("[0-9]+\.([0-9]+)\.", match["matchVersion"])[0])
     extractions["patch"] = str(re.findall("([0-9]+\.[0-9]+)\.", match["matchVersion"])[0])
+    extractions["tier"] = extract_tier(match)
     return extractions
+
+
+def extract_tier(match):
+    count = Counter([x["highestAchievedSeasonTier"] for x in match["participants"]])
+    ## del count["UNRANKED"]
+    try:
+        most_common = count.most_common()[0][0]
+    except:
+        most_common = "NA"
+    return most_common
+
+
