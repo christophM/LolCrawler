@@ -43,8 +43,8 @@ class RitoAPI:
         self.url_stem = 'https://{region}.api.pvp.net/api/lol/{region}/{version}/{endpoint}/{entity}'
         self.time_between_requests = time_between_requests
 
-    def _build_request(self, endpoint, entity):
-        return self.url_stem.format(region=self.region, version=VERSION, endpoint=endpoint, entity=entity)
+    def _build_request(self, endpoint, entity, version=VERSION):
+        return self.url_stem.format(region=self.region, version=version, endpoint=endpoint, entity=entity)
 
     def _make_request(self, request_url, params={}):
         time.sleep(self.time_between_requests)
@@ -60,10 +60,14 @@ class RitoAPI:
             raise ApiResponseError(request.status_code)
         return request.json()
 
-    def get_matchlist(self, summoner_id):
+    def get_matchlist(self, summoner_id, params={}):
         request_url = self._build_request(endpoint='matchlist/by-summoner', entity=summoner_id)
-        return self._make_request(request_url)
+        return self._make_request(request_url, params=params)
 
     def get_match(self, match_id, include_timeline=False):
         request_url = self._build_request(endpoint='match', entity=match_id)
         return self._make_request(request_url, params={'includeTimeline': include_timeline})
+
+    def get_league(self, league="challenger", queue="RANKED_SOLO_5x5"):
+        request_url = self._build_request(endpoint='league', entity=league, version="v2.5")
+        return self._make_request(request_url, params={'type': queue})
