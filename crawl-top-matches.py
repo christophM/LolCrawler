@@ -8,8 +8,6 @@ SEASON="SEASON2016"
 REGION="na"
 
 
-
-
 ## Connect to MongoDB database
 client = MongoClient(config['mongodb']['host'], config['mongodb']['port'])
 db = client[config['mongodb']['db']]
