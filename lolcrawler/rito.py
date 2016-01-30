@@ -43,8 +43,10 @@ class RitoAPI:
         self.url_stem = 'https://{region}.api.pvp.net/api/lol/{region}/{version}/{endpoint}/{entity}'
         self.time_between_requests = time_between_requests
 
-    def _build_request(self, endpoint, entity, version=VERSION):
-        return self.url_stem.format(region=self.region, version=version, endpoint=endpoint, entity=entity)
+    def _build_request(self, endpoint, entity, region=None, version=VERSION):
+        if region is None:
+            region = self.region
+        return self.url_stem.format(region=region, version=version, endpoint=endpoint, entity=entity)
 
     def _make_request(self, request_url, params={}):
         time.sleep(self.time_between_requests)
