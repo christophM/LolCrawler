@@ -42,6 +42,7 @@ MATCHLIST_PAGE_LIMIT = 60
 ## TODO: Maybe create a method in rito.py to have the pagination and MATCHLIST_PAGE_LIMIT
 ##       in the API logic
 ## TODO: Remove crawl-top-matches.py again
+## TODO: Implement startDate for matchlist to avoid getting too many games.
 
 
 class LolCrawlerBase():
@@ -191,9 +192,16 @@ class ChallengerLolCrawler(LolCrawler):
                 time.sleep(5)
 
         for match_id in self.match_ids:
+            print match_id
             ## TODO: Add try except
-            self.crawl_match(match_id)
-
+            try:
+                self.crawl_match(match_id)
+            except (NotFoundError, KeyError) as e:
+                logger.exception(e)
+                self.crawl()
+            except (RitoServerError, RateLimitExceeded) as e:
+                logger.info(e)
+                time.sleep(5)
         return True
 
 
