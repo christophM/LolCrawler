@@ -33,11 +33,11 @@ MATCHLIST_PAGE_LIMIT = 60
 
 
 ## TODO: Crawling of RANKED_TEAM_5x5 in ChallengerLolCrawler
+## TODO: Instead of match_ids and summoner_ids store tuples with region ???
 ## TODO: Add looping through regions
 ## TODO: Make it possible to provide leagues as list
 ## TODO: Regions as argument to crawl()
 ## TODO: seasons as argument to crawl()
-## TODO: Add logging
 ## TODO: Implement highestTier as extractions for match
 ## TODO: Extend crawl.py script with new Crawler
 ## TODO:
@@ -57,10 +57,12 @@ class LolCrawlerBase():
         self.api = api
         self.region = region
         self.include_timeline = include_timeline
-        self.summoner_ids_done = []
+        ## Stack of summoner ids to crawl
         self.summoner_ids = []
-        self.match_ids_done = []
+        self.summoner_ids_done = []
+        ## Stack of match ids to crawl
         self.match_ids = []
+        self.match_ids_done = []
         self.db_client = db_client
 
 
@@ -127,7 +129,8 @@ class LolCrawlerBase():
             new_summoner_ids = list(set(summoner_ids) - set(self.summoner_ids_done))
             self.summoner_ids = new_summoner_ids + self.summoner_ids
         else:
-            logger.info("Skipping match with matchId %s. Already in DB." % (match_id))
+            logger.debug("Skipping match with matchId %s. Already in DB" % (match_id))
+
 
 
 
@@ -186,7 +189,6 @@ class ChallengerLolCrawler(LolCrawler):
         ## Second step is the crawling of match_ids based on the matchlists
 
         begin_time = int(begin_time.strftime('%s')) * 1000
-        print(begin_time)
         ## Always current time. So there is a clear date cut in database
         end_time = int(time.time() * 1000)
 
@@ -210,9 +212,7 @@ class ChallengerLolCrawler(LolCrawler):
 
 
         logger.info("Crawling %i matches" %(len(self.match_ids)))
-        print(self.match_ids)
         for match_id in self.match_ids:
-            print(match_id)
             try:
                 self.crawl_match(match_id)
             except (NotFoundError, KeyError) as e:
