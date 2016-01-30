@@ -185,8 +185,32 @@ class LolCrawler(LolCrawlerBase):
 class ChallengerLolCrawler(LolCrawler):
     """Crawl all matches from all challengers"""
 
+    # def __init__():
+    #     ## TODO: implement
+    #     self.begin_time = int(begin_time.strftime('%s')) * 1000
+    #     self.end_time =  int(time.time() * 1000)
+
+    #     super
+    #     pass
+
+    # def crawl_region_league_season(region, league, season)
+
+    #     self.flush()
+
+    # def _get_top_summoners(region, league, season):
+    #     pass
+
+    # def _get_top_teams(region, league, season):
+    #     pass
+
+    # def _get_top_summoner_matchlists(region, league, season):
+    #     pass
+
+    # def _get_top_summoners_matches():
+    #     pass
 
     def crawl(self, begin_time, league="challenger", season="SEASON2016"):
+        ## Arguments should be: regions, leagues, seasons, begin_time
         ## Crawl all regions. But start with initialised one for now.
         ## Step 1 a): Crawling league for summoner_ids (solo q)
         ## Step 1 b): Crawling league for team ids (team q)
@@ -230,22 +254,27 @@ class ChallengerLolCrawler(LolCrawler):
         return True
 
 
+TIER_ORDER = {"CHALLENGER": 7,
+              "MASTER": 6,
+              "DIAMOND": 5,
+              "PLATINUM": 4,
+              "GOLD": 3,
+              "SILVER": 2,
+              "BRONZE": 1,
+              "UNRANKED": 0}
+
 
 def get_highest_tier(tiers_list):
-    tiers = {"CHALLENGER": 7,
-             "MASTER": 6,
-             "DIAMOND": 5,
-             "PLATINUM": 4,
-             "GOLD": 3,
-             "SILVER": 2,
-             "BRONZE": 1,
-             "UNRANKED": 0}
     ## Filter keys that appeared in the match
-    match_tiers = { key: tiers[key] for key in tiers.keys()}
+    match_tiers = { key: TIER_ORDER[key] for key in TIER_ORDER.keys()}
     highest_tier = max(match_tiers, key=match_tiers.get)
     return highest_tier
 
 
+def get_lowest_tier(tiers_list):
+    match_tiers = { key: TIER_ORDER[key] for key in TIER_ORDER.keys()}
+    lowest_tier = max(match_tiers, key=match_tiers.get)
+    return lowest_tier
 
 
 def extract_match_infos(match):
@@ -258,6 +287,7 @@ def extract_match_infos(match):
     extractions["tier"] = extract_tier(match)
     tiers = [x["highestAchievedSeasonTier"] for x in match["participants"]]
     extractions["highestPlayerTier"] = get_highest_tier(tiers)
+    extractions["lowestPlayerTier"] = get_lowest_tier(tiers)
     return extractions
 
 
