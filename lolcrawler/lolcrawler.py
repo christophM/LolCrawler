@@ -77,8 +77,15 @@ class LolCrawlerBase():
         except DuplicateKeyError:
             logger.info("Duplicate: Mongodb already inserted {entity_type} with id {identifier}".format(entity_type=entity_type, identifier=identifier))
         except ServerSelectionTimeoutError as e:
-            logger.error("Could not reach Mongodb", exc_info=True)
+            logger.error("Could not connect to Mongodb", exc_info=True)
             sys.exit(1)
+
+    def set_region(region):
+        self.region = region
+
+    def flush():
+        self.summoner_ids = []
+        self.match_ids = []
 
     def crawl_matchlist(self, summoner_id):
         """Crawls matchlist of given summoner,
