@@ -192,7 +192,6 @@ class ChallengerLolCrawler(LolCrawler):
 
         self.summoner_ids = [x["playerOrTeamId"] for x in league_list["entries"]]
         for summoner_id in self.summoner_ids:
-            print("Crawling ", summoner_id)
             try:
                 matchlist_crawl_params = {"beginTime": begin_time,
                                           "endTime": end_time,
