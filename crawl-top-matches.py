@@ -2,10 +2,10 @@ from lolcrawler.rito import RitoAPI
 from config import config
 from pymongo import MongoClient
 from lolcrawler.lolcrawler import ChallengerLolCrawler
-
+from datetime import datetime
 
 SEASON="SEASON2016"
-REGION="na"
+REGION="euw"
 
 
 ## Connect to MongoDB database
@@ -23,5 +23,8 @@ api = RitoAPI(config['api_key'], time_between_requests, region=REGION)
 
 
 
-crawler = ChallengerLolCrawler(api, db_client=db, region=REGION, include_timeline=True)
-crawler.crawl()
+crawler = ChallengerLolCrawler(api, db_client=db, region=REGION, include_timeline=False)
+crawler.crawl(begin_time=datetime(2015,1, 26))
+
+
+
