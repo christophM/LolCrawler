@@ -126,6 +126,8 @@ class LolCrawlerBase():
             ## remove summoner ids the crawler has already seen
             new_summoner_ids = list(set(summoner_ids) - set(self.summoner_ids_done))
             self.summoner_ids = new_summoner_ids + self.summoner_ids
+        else:
+            logger.info("Skipping match with matchId %s. Already in DB." % (match_id))
 
 
 
@@ -184,15 +186,16 @@ class ChallengerLolCrawler(LolCrawler):
         ## Second step is the crawling of match_ids based on the matchlists
 
         begin_time = int(begin_time.strftime('%s')) * 1000
+        print(begin_time)
         ## Always current time. So there is a clear date cut in database
-        end_time = time.time() * 1000
+        end_time = int(time.time() * 1000)
 
         queue = "RANKED_SOLO_5x5"
         league_list = self.api.get_league(league=league, queue=queue)
 
         self.summoner_ids = [x["playerOrTeamId"] for x in league_list["entries"]]
+        logger.info("Crawling matchlists of %i players" % (len(self.summoner_ids)))
         for summoner_id in self.summoner_ids:
-            print("Crawling ", summoner_id)
             try:
                 matchlist_crawl_params = {"beginTime": begin_time,
                                           "endTime": end_time,
@@ -204,11 +207,12 @@ class ChallengerLolCrawler(LolCrawler):
             except (RitoServerError, RateLimitExceeded) as e:
                 logger.info(e)
                 time.sleep(5)
-                continue
 
+
+        logger.info("Crawling %i matches" %(len(self.match_ids)))
+        print(self.match_ids)
         for match_id in self.match_ids:
-            print match_id
-            ## TODO: Add try except
+            print(match_id)
             try:
                 self.crawl_match(match_id)
             except (NotFoundError, KeyError) as e:
@@ -216,7 +220,6 @@ class ChallengerLolCrawler(LolCrawler):
             except (RitoServerError, RateLimitExceeded) as e:
                 logger.info(e)
                 time.sleep(5)
-                continue
         return True
 
 
