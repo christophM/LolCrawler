@@ -6,12 +6,12 @@ VERSION = "v2.2"
 
 class ApiResponseError(Exception):
     """Most common errors with Rito API """
-    errors = {400: "Bad request",
-              401: "Unauthorized. Is something wrong with the API key?",
-              404: "Data not found",
-              429: "Too many requests. Maybe reduce number of requests per minute?",
-              500: "Internal server error",
-              503: "Service unavailable"}
+    errors = {400: "Bad request (400)",
+              401: "Unauthorized. Is something wrong with the API key? (401)",
+              404: "Data not found (404)",
+              429: "Too many requests. Maybe reduce number of requests per minute? (429)",
+              500: "Internal server error (500)",
+              503: "Service unavailable (503)"}
 
     def __init__(self, status_code):
         self.status_code = status_code
