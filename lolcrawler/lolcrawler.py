@@ -10,6 +10,7 @@ import re
 from collections import Counter
 import time
 import datetime
+import itertools
 
 logger = logging.getLogger(__name__)
 
@@ -72,17 +73,15 @@ class LolCrawlerBase():
             logger.error("Could not connect to Mongodb", exc_info=True)
             sys.exit(1)
 
-    def set_region(region):
-        self.region = region
-
-    def flush():
+    def flush(self):
         self.summoner_ids = []
         self.match_ids = []
 
-    def crawl_matchlist(self, summoner_id):
+    def crawl_matchlist(self, summoner_id, region=None):
         """Crawls matchlist of given summoner,
         stores it and saves the matchIds"""
-        matchlist = self.api.get_matchlist(summoner_id)
+        logger.debug('Getting partial matchlist of summoner %s' % (summoner_id))
+        matchlist = self.api.get_matchlist(summoner_id, region=region)
         matchlist["extractions"] = {"region": self.region}
         self._store(identifier=summoner_id, entity_type=MATCHLIST_COLLECTION, entity=matchlist, upsert=True)
         self.summoner_ids_done.append(summoner_id)
@@ -90,25 +89,27 @@ class LolCrawlerBase():
         self.match_ids.extend(match_ids)
         return match_ids
 
-    def crawl_complete_matchlist(self, summoner_id, params={}):
+    def crawl_complete_matchlist(self, summoner_id, params={}, region=None):
         """Crawls complete matchlist by going through paginated matchlists of given summoner,
         stores it and saves the matchIds"""
 
-        logger.debug('Crawling summoner %s' % (summoner_id))
+        logger.debug('Getting complete matchlist of summoner %s' % (summoner_id))
         more_matches=True
         ## Start with empty matchlist
         matchlist={"matches": [], "totalGames": 0}
         begin_index=0
         while more_matches:
             params.update({"beginIndex": begin_index, "endIndex": begin_index + MATCHLIST_PAGE_LIMIT})
-            new_matchlist = self.api.get_matchlist(summoner_id=summoner_id, params=params)
+            new_matchlist = self.api.get_matchlist(summoner_id=summoner_id, params=params, region=region)
             if "matches" in new_matchlist.keys():
                 matchlist["matches"] = matchlist["matches"] + new_matchlist["matches"]
                 matchlist["totalGames"] = matchlist["totalGames"] + new_matchlist["totalGames"]
                 begin_index += MATCHLIST_PAGE_LIMIT
             else:
                 more_matches=False
-        matchlist["extractions"] = {"region": self.region}
+
+        region = region if region else self.api.region
+        matchlist["extractions"] = {"region": region}
         self._store(identifier=summoner_id, entity_type=MATCHLIST_COLLECTION, entity=matchlist, upsert=True)
         self.summoner_ids_done.append(summoner_id)
         match_ids = [x['matchId'] for x in matchlist['matches']]
@@ -116,14 +117,14 @@ class LolCrawlerBase():
         return match_ids
 
 
-    def crawl_match(self, match_id):
+    def crawl_match(self, match_id, region=None):
         """Crawl match with given match_id,
         stores it and saves the matchID"""
         ## Check if match is in database and only crawl if not in database
         match_in_db = self.db_client[MATCH_COLLECTION].find({"_id": match_id})
         if match_in_db.count() == 0:
-            logger.debug('Crawling match %s' % (matchId))
-            match = self.api.get_match(match_id=match_id, include_timeline=self.include_timeline)
+            logger.debug('Crawling match %s' % (match_id))
+            match = self.api.get_match(match_id=match_id, include_timeline=self.include_timeline, region=region)
             match["extractions"] = extract_match_infos(match)
             self._store(identifier=match_id, entity_type=MATCH_COLLECTION, entity=match)
             summoner_ids = [x['player']['summonerId'] for x in match['participantIdentities']]
@@ -180,73 +181,74 @@ class LolCrawler(LolCrawlerBase):
 class ChallengerLolCrawler(LolCrawler):
     """Crawl all matches from all challengers"""
 
-    # def __init__():
-    #     ## TODO: implement
-    #     self.begin_time = int(begin_time.strftime('%s')) * 1000
-    #     self.end_time =  int(time.time() * 1000)
+    def crawl(self, region, league, season):
+        '''Crawl all matches from players in given region, league and season'''
+        logger.info('Crawling matches for %s players in %s, season %s' % (league, region, season))
+        ## Add ids of solo q top summoners to self.summmone_ids
+        self._get_top_summoner_ids(region, league, season)
+        ## Get all summoner ids of the league
+        logger.info("Crawling matchlists of %i players" % (len(self.summoner_ids)))
+        ## Get matchlists for all summoners
+        self._get_top_summoner_matchlists(region, league, season)
+        logger.info("Crawling %i matches" %(len(self.match_ids)))
+        self._get_top_summoners_matches(region)
+        self.flush()
+        return None
 
-    #     super
-    #     pass
-
-    # def crawl_region_league_season(region, league, season)
-
-    #     self.flush()
-
-    # def _get_top_summoners(region, league, season):
-    #     pass
+    def _get_top_summoner_ids(self, region, league, season):
+        queue = "RANKED_SOLO_5x5"
+        league_list = self.api.get_league(league=league, queue=queue, region=region)
+        self.summoner_ids = [x["playerOrTeamId"] for x in league_list["entries"]]
+        return None
 
     # def _get_top_teams(region, league, season):
     #     pass
 
-    # def _get_top_summoner_matchlists(region, league, season):
-    #     pass
 
-    # def _get_top_summoners_matches():
-    #     pass
-
-    def crawl(self, begin_time, league="challenger", season="SEASON2016"):
-        ## Arguments should be: regions, leagues, seasons, begin_time
-        ## Crawl all regions. But start with initialised one for now.
-        ## Step 1 a): Crawling league for summoner_ids (solo q)
-        ## Step 1 b): Crawling league for team ids (team q)
-        ## Step 1 c): Turning team ids into summoner ids
-        ## Step 2: Crawling summoner_ids for matchlists
-        ## Step 3: Crawling match_ids from matchlists for matches
-        ## Second step is the crawling of match_ids based on the matchlists
-
-        begin_time = int(begin_time.strftime('%s')) * 1000
-        ## Always current time. So there is a clear date cut in database
-        end_time = int(time.time() * 1000)
-
-        queue = "RANKED_SOLO_5x5"
-        league_list = self.api.get_league(league=league, queue=queue)
-
-        self.summoner_ids = [x["playerOrTeamId"] for x in league_list["entries"]]
-        logger.info("Crawling matchlists of %i players" % (len(self.summoner_ids)))
+    def _get_top_summoner_matchlists(self, region, league, season):
+        '''Download and store matchlists for self.summoner_ids'''
         for summoner_id in self.summoner_ids:
             try:
-                matchlist_crawl_params = {"beginTime": begin_time,
-                                          "endTime": end_time,
-                                          "seasons": season,
-                                          "rankedQueues": queue}
-                self.crawl_complete_matchlist(summoner_id, matchlist_crawl_params)
+                matchlist_crawl_params = {"beginTime": self.begin_time,
+                                          "endTime": self.end_time,
+                                          "seasons": season}
+                self.crawl_complete_matchlist(summoner_id, matchlist_crawl_params, region=region)
             except (NotFoundError, KeyError) as e:
-                logger.exception(e)
+                logger.error(e)
             except (RitoServerError, RateLimitExceeded) as e:
-                logger.info(e)
+                logger.error(e)
                 time.sleep(5)
+        return None
 
 
-        logger.info("Crawling %i matches" %(len(self.match_ids)))
+    def _get_top_summoners_matches(self, region):
         for match_id in self.match_ids:
             try:
-                self.crawl_match(match_id)
+                self.crawl_match(match_id, region=region)
             except (NotFoundError, KeyError) as e:
-                logger.exception(e)
+                logger.error(e)
             except (RitoServerError, RateLimitExceeded) as e:
-                logger.info(e)
+                logger.error(e)
                 time.sleep(5)
-        return True
+        return None
+
+    def start(self,
+              begin_time,
+              regions=['euw', 'eune', 'kr', 'na'],
+              end_time = int(time.time() * 1000),
+              leagues=['challenger', 'master'],
+              seasons=["SEASON2016"]
+              ):
+
+        self.begin_time = int(begin_time.strftime('%s')) * 1000
+        self.end_time = end_time
+
+        for region, league, season in itertools.product(regions, leagues, seasons):
+            self.crawl(region=region, league=league, season=season)
+
+
+
+
 
 
 TIER_ORDER = {"CHALLENGER": 7,
