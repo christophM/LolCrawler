@@ -178,7 +178,7 @@ class LolCrawler(LolCrawlerBase):
 
 
 
-class ChallengerLolCrawler(LolCrawler):
+class TopLolCrawler(LolCrawler):
     """Crawl all matches from all challengers"""
 
     def crawl(self, region, league, season):
