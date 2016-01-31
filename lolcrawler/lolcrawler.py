@@ -32,28 +32,22 @@ MATCHLIST_PAGE_LIMIT = 60
 
 
 ## TODO: Crawling of RANKED_TEAM_5x5 in ChallengerLolCrawler
-## TODO: Instead of match_ids and summoner_ids store tuples with region ???
-## TODO: Add looping through regions
-## TODO: Make it possible to provide leagues as list
-## TODO: Regions as argument to crawl()
-## TODO: seasons as argument to crawl()
-## TODO: Implement highestTier as extractions for match
 ## TODO: Extend crawl.py script with new Crawler
-## TODO:
 ## TODO: Maybe create a method in rito.py to have the pagination and MATCHLIST_PAGE_LIMIT
 ##       in the API logic
 ## TODO: Remove crawl-top-matches.py again
-## TODO: Split crawl() method of ChallengerLolCrawler into multiple functions (IN PROGRESS)
+## TODO: Remove region from crawler and use the api region for the crawler region
 ## OPTIONAL TODO: Create own extract module
+## OPTIONAL TODO: Create constants module
 ## OPTIONAL TODO: Extraction should work like aggregate.py
 
 
 class LolCrawlerBase():
     """Crawler base class for all crawlers"""
 
-    def __init__(self, api, db_client, region, include_timeline=False):
+    def __init__(self, api, db_client, include_timeline=False):
         self.api = api
-        self.region = region
+        self.region = api.region
         self.include_timeline = include_timeline
         ## Stack of summoner ids to crawl
         self.summoner_ids = []
