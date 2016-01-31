@@ -13,12 +13,11 @@ import datetime
 
 logger = logging.getLogger(__name__)
 
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 # create a file handler
-
 handler = logging.FileHandler('crawler.log')
-handler.setLevel(logging.INFO)
+handler.setLevel(logging.DEBUG)
 
 # create a logging format
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -44,8 +43,7 @@ MATCHLIST_PAGE_LIMIT = 60
 ## TODO: Maybe create a method in rito.py to have the pagination and MATCHLIST_PAGE_LIMIT
 ##       in the API logic
 ## TODO: Remove crawl-top-matches.py again
-## TODO: Implement startDate for matchlist to avoid getting too many games.
-## TODO: Split crawl() method of ChallengerLolCrawler into multiple functions
+## TODO: Split crawl() method of ChallengerLolCrawler into multiple functions (IN PROGRESS)
 ## OPTIONAL TODO: Create own extract module
 ## OPTIONAL TODO: Extraction should work like aggregate.py
 
@@ -75,7 +73,7 @@ class LolCrawlerBase():
             else:
                 self.db_client[entity_type].insert_one(entity)
         except DuplicateKeyError:
-            logger.info("Duplicate: Mongodb already inserted {entity_type} with id {identifier}".format(entity_type=entity_type, identifier=identifier))
+            logger.warning("Duplicate: Mongodb already inserted {entity_type} with id {identifier}".format(entity_type=entity_type, identifier=identifier))
         except ServerSelectionTimeoutError as e:
             logger.error("Could not connect to Mongodb", exc_info=True)
             sys.exit(1)
@@ -101,6 +99,8 @@ class LolCrawlerBase():
     def crawl_complete_matchlist(self, summoner_id, params={}):
         """Crawls complete matchlist by going through paginated matchlists of given summoner,
         stores it and saves the matchIds"""
+
+        logger.debug('Crawling summoner %s' % (summoner_id))
         more_matches=True
         ## Start with empty matchlist
         matchlist={"matches": [], "totalGames": 0}
@@ -128,6 +128,7 @@ class LolCrawlerBase():
         ## Check if match is in database and only crawl if not in database
         match_in_db = self.db_client[MATCH_COLLECTION].find({"_id": match_id})
         if match_in_db.count() == 0:
+            logger.debug('Crawling match %s' % (matchId))
             match = self.api.get_match(match_id=match_id, include_timeline=self.include_timeline)
             match["extractions"] = extract_match_infos(match)
             self._store(identifier=match_id, entity_type=MATCH_COLLECTION, entity=match)
@@ -172,7 +173,7 @@ class LolCrawler(LolCrawlerBase):
             match_id = match_ids[random_match_id]
             self.crawl_match(match_id)
         except (NotFoundError, KeyError) as e:
-            logger.exception(e)
+            logger.error(e)
             self.crawl()
         except (RitoServerError, RateLimitExceeded) as e:
             logger.info(e)
