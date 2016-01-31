@@ -62,14 +62,14 @@ class RitoAPI:
             raise ApiResponseError(request.status_code)
         return request.json()
 
-    def get_matchlist(self, summoner_id, params={}):
-        request_url = self._build_request(endpoint='matchlist/by-summoner', entity=summoner_id)
+    def get_matchlist(self, summoner_id, params={}, region=None):
+        request_url = self._build_request(endpoint='matchlist/by-summoner', entity=summoner_id, region=region)
         return self._make_request(request_url, params=params)
 
-    def get_match(self, match_id, include_timeline=False):
-        request_url = self._build_request(endpoint='match', entity=match_id)
+    def get_match(self, match_id, include_timeline=False, region=None):
+        request_url = self._build_request(endpoint='match', entity=match_id, region=region)
         return self._make_request(request_url, params={'includeTimeline': include_timeline})
 
-    def get_league(self, league="challenger", queue="RANKED_SOLO_5x5"):
-        request_url = self._build_request(endpoint='league', entity=league, version="v2.5")
+    def get_league(self, league="challenger", queue="RANKED_SOLO_5x5", region=None):
+        request_url = self._build_request(endpoint='league', entity=league, version="v2.5", region=region)
         return self._make_request(request_url, params={'type': queue})
