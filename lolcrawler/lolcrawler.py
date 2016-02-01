@@ -38,6 +38,7 @@ MATCHLIST_PAGE_LIMIT = 60
 ##       in the API logic
 ## TODO: Remove crawl-top-matches.py again
 ## TODO: Remove region from crawler and use the api region for the crawler region
+## TODO: When getting matchlists, check if mathlist already in db. if so, check maximum timestamp and set as begin_time
 ## OPTIONAL TODO: Create own extract module
 ## OPTIONAL TODO: Create constants module
 ## OPTIONAL TODO: Extraction should work like aggregate.py
@@ -263,14 +264,14 @@ TIER_ORDER = {"CHALLENGER": 7,
 
 def get_highest_tier(tiers_list):
     ## Filter keys that appeared in the match
-    match_tiers = { key: TIER_ORDER[key] for key in TIER_ORDER.keys()}
+    match_tiers = { key: TIER_ORDER[key] for key in tiers_list.keys()}
     highest_tier = max(match_tiers, key=match_tiers.get)
     return highest_tier
 
 
 def get_lowest_tier(tiers_list):
-    match_tiers = { key: TIER_ORDER[key] for key in TIER_ORDER.keys()}
-    lowest_tier = max(match_tiers, key=match_tiers.get)
+    match_tiers = { key: TIER_ORDER[key] for key in tiers_list.keys()}
+    lowest_tier = min(match_tiers, key=match_tiers.get)
     return lowest_tier
 
 
