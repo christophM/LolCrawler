@@ -1,12 +1,9 @@
 config = {
-    'summoner_seed_id': '32450058',
+    'summoner_seed_id': '22850276',
     'region': 'euw',
-    'include_timeline': False,
+    'include_timeline': True,
     'api_key': '',
-    'rate_limit': {
-        'seconds': 600,
-        'n_requests': 500
-    },
+    'is_production_key': False,
     'mongodb': {
         'host': 'localhost',
         'port': 27017,

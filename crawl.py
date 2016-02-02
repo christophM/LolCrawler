@@ -1,5 +1,5 @@
 from lolcrawler.lolcrawler import LolCrawler
-from lolcrawler.rito import RitoAPI
+from riotwatcher import RiotWatcher, RateLimit
 from config import config
 from pymongo import MongoClient
 
@@ -11,16 +11,21 @@ if __name__=="__main__":
     db = client[config['mongodb']['db']]
 
     ## Initialise Riot API wrapper
-    time_between_requests = config['rate_limit']['seconds'] / float(config['rate_limit']['n_requests'])
     api_key = config['api_key']
     if api_key=='':
         raise LookupError("Provide your API key in config.py")
 
     region=config["region"]
-    api = RitoAPI(config['api_key'], time_between_requests, region=region)
+
+    if config['is_production_key']:
+        limits = (RateLimit(3000,10), RateLimit(180000,600), )
+    else:
+        limits = (RateLimit(10, 10), RateLimit(500, 600), )
+
+    api = RiotWatcher(config['api_key'], default_region=region, limits=limits)
 
     ## Initialise crawler
-    crawler =  LolCrawler(api, db_client=db, region=region, include_timeline=config["include_timeline"])
+    crawler =  LolCrawler(api, db_client=db, include_timeline=config["include_timeline"])
 
     crawler.start(config['summoner_seed_id'])
 
