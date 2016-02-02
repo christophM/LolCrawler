@@ -1,7 +1,6 @@
 import sys
 import time
 import numpy as np
-from .rito import RitoAPI, NotFoundError, RateLimitExceeded, RitoServerError
 from datetime import datetime
 from pymongo.errors import DuplicateKeyError, ServerSelectionTimeoutError
 import pymongo
@@ -11,6 +10,7 @@ from collections import Counter
 import time
 import datetime
 import itertools
+from riotwatcher import LoLException
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ MATCHLIST_PAGE_LIMIT = 60
 
 
 ## TODO: Crawling of RANKED_TEAM_5x5 in ChallengerLolCrawler
-## TODO: Use riotwatcher
+## TODO: Use riotwatcher: use constants
 ## TODO: Extend crawl.py script with new Crawler
 ## TODO: Maybe create a method in rito.py to have the pagination and MATCHLIST_PAGE_LIMIT
 ##       in the API logic
@@ -43,6 +43,8 @@ MATCHLIST_PAGE_LIMIT = 60
 ## OPTIONAL TODO: Create own extract module
 ## OPTIONAL TODO: Create constants module
 ## OPTIONAL TODO: Extraction should work like aggregate.py
+## OPTIONAL TODO: Parallel processing in TopCrawler
+## OPTIONAL TODO: Threads in lolcrawler
 
 
 class LolCrawlerBase():
@@ -50,7 +52,7 @@ class LolCrawlerBase():
 
     def __init__(self, api, db_client, include_timeline=False):
         self.api = api
-        self.region = api.region
+        self.region = api.default_region
         self.include_timeline = include_timeline
         ## Stack of summoner ids to crawl
         self.summoner_ids = []
@@ -79,11 +81,12 @@ class LolCrawlerBase():
         self.summoner_ids = []
         self.match_ids = []
 
-    def crawl_matchlist(self, summoner_id, region=None):
+    def crawl_matchlist(self, summoner_id, region=None,  **kwargs):
         """Crawls matchlist of given summoner,
         stores it and saves the matchIds"""
         logger.debug('Getting partial matchlist of summoner %s' % (summoner_id))
-        matchlist = self.api.get_matchlist(summoner_id, region=region)
+        wait_for_api(self.api)
+        matchlist = self.api.get_match_list(summoner_id, region=region,  **kwargs)
         matchlist["extractions"] = {"region": self.region}
         self._store(identifier=summoner_id, entity_type=MATCHLIST_COLLECTION, entity=matchlist, upsert=True)
         self.summoner_ids_done.append(summoner_id)
@@ -91,7 +94,7 @@ class LolCrawlerBase():
         self.match_ids.extend(match_ids)
         return match_ids
 
-    def crawl_complete_matchlist(self, summoner_id, params={}, region=None):
+    def crawl_complete_matchlist(self, summoner_id,  region=None,  **kwargs):
         """Crawls complete matchlist by going through paginated matchlists of given summoner,
         stores it and saves the matchIds"""
 
@@ -101,8 +104,11 @@ class LolCrawlerBase():
         matchlist={"matches": [], "totalGames": 0}
         begin_index=0
         while more_matches:
-            params.update({"beginIndex": begin_index, "endIndex": begin_index + MATCHLIST_PAGE_LIMIT})
-            new_matchlist = self.api.get_matchlist(summoner_id=summoner_id, params=params, region=region)
+            wait_for_api(self.api)
+            new_matchlist = self.api.get_match_list(summoner_id=summoner_id,
+                                                    begin_index=begin_index,
+                                                    end_index=begin_index + MATCHLIST_PAGE_LIMIT,
+                                                    region=region,  **kwargs)
             if "matches" in new_matchlist.keys():
                 matchlist["matches"] = matchlist["matches"] + new_matchlist["matches"]
                 matchlist["totalGames"] = matchlist["totalGames"] + new_matchlist["totalGames"]
@@ -110,7 +116,7 @@ class LolCrawlerBase():
             else:
                 more_matches=False
 
-        region = region if region else self.api.region
+        region = region if region else self.region
         matchlist["extractions"] = {"region": region}
         self._store(identifier=summoner_id, entity_type=MATCHLIST_COLLECTION, entity=matchlist, upsert=True)
         self.summoner_ids_done.append(summoner_id)
@@ -126,13 +132,17 @@ class LolCrawlerBase():
         match_in_db = self.db_client[MATCH_COLLECTION].find({"_id": match_id})
         if match_in_db.count() == 0:
             logger.debug('Crawling match %s' % (match_id))
+            wait_for_api(self.api)
             match = self.api.get_match(match_id=match_id, include_timeline=self.include_timeline, region=region)
             match["extractions"] = extract_match_infos(match)
             self._store(identifier=match_id, entity_type=MATCH_COLLECTION, entity=match)
-            summoner_ids = [x['player']['summonerId'] for x in match['participantIdentities']]
-            ## remove summoner ids the crawler has already seen
-            new_summoner_ids = list(set(summoner_ids) - set(self.summoner_ids_done))
-            self.summoner_ids = new_summoner_ids + self.summoner_ids
+            try:
+                summoner_ids = [x['player']['summonerId'] for x in match['participantIdentities']]
+                ## remove summoner ids the crawler has already seen
+                new_summoner_ids = list(set(summoner_ids) - set(self.summoner_ids_done))
+                self.summoner_ids = new_summoner_ids + self.summoner_ids
+            except:
+                logger.error('Could not find participant data in match with id %s' % (match_id))
         else:
             logger.debug("Skipping match with matchId %s. Already in DB" % (match_id))
 
@@ -169,14 +179,10 @@ class LolCrawler(LolCrawlerBase):
             random_match_id = np.random.choice(range(0, min(10, len(match_ids))))
             match_id = match_ids[random_match_id]
             self.crawl_match(match_id)
-        except (NotFoundError, KeyError) as e:
+        except LoLException as e:
             logger.error(e)
             self.crawl()
-        except (RitoServerError, RateLimitExceeded) as e:
-            logger.info(e)
-            logger.info("Trying again in 5 seconds")
-            time.sleep(5)
-            self.crawl()
+
 
 
 
@@ -185,7 +191,7 @@ class TopLolCrawler(LolCrawler):
 
     def crawl(self, region, league, season):
         '''Crawl all matches from players in given region, league and season'''
-        logger.info('Crawling matches for %s players in %s, season %s' % (league, region, season))
+        logger.info('Crawling matches for %sp layers in %s, season %s' % (league, region, season))
         ## Add ids of solo q top summoners to self.summmone_ids
         self._get_top_summoner_ids(region, league, season)
         ## Get all summoner ids of the league
@@ -199,7 +205,11 @@ class TopLolCrawler(LolCrawler):
 
     def _get_top_summoner_ids(self, region, league, season):
         queue = "RANKED_SOLO_5x5"
-        league_list = self.api.get_league(league=league, queue=queue, region=region)
+        wait_for_api(self.api)
+        if league == 'challenger':
+            league_list = self.api.get_challenger(region=region, queue=queue)
+        elif league == 'master':
+            league_list = self.api.get_master(region=region, queue=queue)
         self.summoner_ids = [x["playerOrTeamId"] for x in league_list["entries"]]
         return None
 
@@ -211,15 +221,13 @@ class TopLolCrawler(LolCrawler):
         '''Download and store matchlists for self.summoner_ids'''
         for summoner_id in self.summoner_ids:
             try:
-                matchlist_crawl_params = {"beginTime": self.begin_time,
-                                          "endTime": self.end_time,
-                                          "seasons": season}
-                self.crawl_complete_matchlist(summoner_id, matchlist_crawl_params, region=region)
-            except (NotFoundError, KeyError) as e:
+                self.crawl_complete_matchlist(summoner_id=summoner_id,
+                                              region=region,
+                                              begin_time=self.begin_time,
+                                              end_time=self.end_time,
+                                              season=season)
+            except LoLException as e:
                 logger.error(e)
-            except (RitoServerError, RateLimitExceeded) as e:
-                logger.error(e)
-                time.sleep(5)
         return None
 
 
@@ -227,11 +235,8 @@ class TopLolCrawler(LolCrawler):
         for match_id in self.match_ids:
             try:
                 self.crawl_match(match_id, region=region)
-            except (NotFoundError, KeyError) as e:
+            except LoLException as e:
                 logger.error(e)
-            except (RitoServerError, RateLimitExceeded) as e:
-                logger.error(e)
-                time.sleep(5)
         return None
 
     def start(self,
@@ -299,3 +304,9 @@ def extract_tier(match):
     return most_common
 
 
+
+def wait_for_api(api):
+    while not api.can_make_request:
+        logger.info('Reached API limit, waiting 0.1 seconds')
+        sys.Sleep(0.1)
+    return None
