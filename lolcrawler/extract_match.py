@@ -18,8 +18,6 @@ def surrendered():
 
 def surrendered_at_20(match):
     '''Checks if the match was surrendered at 20 by one of the teams'''
-    if surrendered(match) and
-    surrenderInterval = match['matchDuration'] > 1200
     pass
 
 
