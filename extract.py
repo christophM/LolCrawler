@@ -23,12 +23,13 @@ def extract(db):
         ## TODO: Add extractionsDate
         db["match"].update_one({"_id": matchId},
                               {"$set": {"extractions": extractions}})
-    pass
+        index += 1
+    return None
 
 def reset_extractions(db):
     '''Removes all extractions from the database'''
     ## TODO: Include projection for cursor to make process faster
-    print("Deleting aggregates and removing flags from matches")
+    print("Deleting extractions from matches")
     db["match"].update_many({"extractions": {"$exists": True}},
                        {"$unset": {"extractions": ""}},
                        upsert=False)
@@ -48,7 +49,7 @@ if __name__=="__main__":
     elif action=='extract':
         extract(db)
     else:
-        print("Please choose either update, reset or reprocess")
+        print("Please choose either extract or reset")
 
 
 
