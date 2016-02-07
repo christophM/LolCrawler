@@ -35,7 +35,6 @@ MATCHLIST_PAGE_LIMIT = 60
 ## TODO: Use riotwatcher: use constants
 ## TODO: Extend crawl.py script with new Crawler
 ## TODO: Remove crawl-top-matches.py again
-## TODO: When getting matchlists, check if mathlist already in db. if so, check maximum timestamp and set as begin_time
 ## TODO: Write some tests
 ## TODO: Add index to summoner_id in matchlist
 ## OPTIONAL TODO: Create own extract module
@@ -247,7 +246,7 @@ class TopLolCrawler(LolCrawler):
             if min_time > begin_time:
                 return begin_time
             else:
-                logger.debug('Matchlist of summoner %s partially crawled, starting diff %s h later' % (summoner_id, max_time - begin_time / (1000 * 60  * 60))))
+                logger.debug('Matchlist of summoner %s partially crawled, starting diff %s h later' % (summoner_id, max_time - begin_time / (1000 * 60  * 60)))
                 return max(begin_time, max_time)
 
     def _get_top_summoners_matches(self, region):
