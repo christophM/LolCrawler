@@ -22,7 +22,8 @@ def extract(db):
         extractions = extract_match_infos(match)
         ## TODO: Add extractionsDate
         db["match"].update_one({"_id": matchId},
-                              {"$set": {"extractions": extractions}})
+                              {"$set": {"extractions": extractions,
+                                        "processedAt.extract": datetime.now()}})
         index += 1
     return None
 

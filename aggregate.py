@@ -38,7 +38,7 @@ def update_aggregates(db):
 
     ## Create cursor over all games with non-existent champions-counted=TRUE
     ## Need snapshot to not iterate twice over the doc
-    cur = db["match"].find({"extractions.postProcessedAt": {"$exists": False}},
+    cur = db["match"].find({"processedAt.aggregate": {"$exists": False}},
                            modifiers={"snapshot": True})
     match_count = cur.count()
     index = 0
@@ -48,7 +48,7 @@ def update_aggregates(db):
         match = cur.next()
         matchId = match["_id"]
         db["match"].update_one({"_id": matchId},
-                           {"$set": {"extractions.postProcessedAt": datetime.now()}})
+                           {"$set": {"processedAt.aggregate": datetime.now()}})
         if match["matchMode"] != "CLASSIC":
             continue
 
@@ -117,14 +117,14 @@ if __name__=="__main__":
 
     args = arguments.Args()
     action = args.get(0)
-    if action=="update":
+    if action=="aggregate":
         update_aggregates(db)
     elif action=="reset":
         reset_aggregates(db)
     elif action=="reprocess":
         reprocess_aggregates(db)
     else:
-        print("Please choose either update, reset or reprocess")
+        print("Please choose either aggregate, reset or reprocess")
 
 
 
