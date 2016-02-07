@@ -34,11 +34,10 @@ MATCHLIST_PAGE_LIMIT = 60
 ## TODO: Crawling of RANKED_TEAM_5x5 in ChallengerLolCrawler
 ## TODO: Use riotwatcher: use constants
 ## TODO: Extend crawl.py script with new Crawler
-## TODO: Maybe create a method in rito.py to have the pagination and MATCHLIST_PAGE_LIMIT
-##       in the API logic
 ## TODO: Remove crawl-top-matches.py again
 ## TODO: When getting matchlists, check if mathlist already in db. if so, check maximum timestamp and set as begin_time
 ## TODO: Write some tests
+## TODO: Add index to summoner_id in matchlist
 ## OPTIONAL TODO: Create own extract module
 ## OPTIONAL TODO: Create constants module
 ## OPTIONAL TODO: Extraction should work like aggregate.py
@@ -190,7 +189,7 @@ class TopLolCrawler(LolCrawler):
 
     def crawl(self, region, league, season):
         '''Crawl all matches from players in given region, league and season'''
-        logger.info('Crawling matches for %sp layers in %s, season %s' % (league, region, season))
+        logger.info('Crawling matches for %s players in %s, season %s' % (league, region, season))
         ## Add ids of solo q top summoners to self.summmone_ids
         self._get_top_summoner_ids(region, league, season)
         ## Get all summoner ids of the league
@@ -220,15 +219,36 @@ class TopLolCrawler(LolCrawler):
         '''Download and store matchlists for self.summoner_ids'''
         for summoner_id in self.summoner_ids:
             try:
+                begin_time = self._get_matchlist_end_time(summoner_id, self.begin_time)
                 self.crawl_complete_matchlist(summoner_id=summoner_id,
                                               region=region,
-                                              begin_time=self.begin_time,
+                                              begin_time=begin_time,
                                               end_time=self.end_time,
                                               season=season)
             except LoLException as e:
                 logger.error(e)
         return None
 
+    def _get_matchlist_end_time(self, summoner_id, begin_time):
+        '''Get the latest end time of matchlist of summoner in db. Returns begin_time if
+           nothing found or begin_time after latest entry
+        '''
+        matchlist = self.db_client[MATCHLIST_COLLECTION].find_one({'_id': summoner_id})
+
+        if matchlist is None:
+            return begin_time
+        elif len(matchlist['matches']) == 0:
+            return begin_time
+        else:
+            match_times = [match['timestamp'] for match in matchlist['matches']]
+            min_time = min(match_times)
+            max_time = max(match_times)
+            ## In case the stored matchlist is dated later than begin_time. Not ideal solution
+            if min_time > begin_time:
+                return begin_time
+            else:
+                logger.debug('Matchlist of summoner %s partially crawled, starting diff %s h later' % (summoner_id, max_time - begin_time / (1000 * 60  * 60))))
+                return max(begin_time, max_time)
 
     def _get_top_summoners_matches(self, region):
         for match_id in self.match_ids:
