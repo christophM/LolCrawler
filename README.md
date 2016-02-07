@@ -35,6 +35,12 @@ kill <process-id>
 
 If something goes wrong, have a look at the log file named crawler.log.
 
+
+Run tests with
+```bash
+py.test test/
+```
+
 ### Champion statistics
 
 You can create a MongoDB table "champStats" by running the following script:

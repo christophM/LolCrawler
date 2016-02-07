@@ -38,7 +38,7 @@ def surrendered(match):
 def surrendered_at_20(match):
     '''Checks if the match was surrendered at 20 by one of the teams'''
     match_duration = match['matchDuration']
-    ended_at_20 = ((match_duration  > 60 * 20) and (match_duration < 60 * 21))
+    ended_at_20 = ((match_duration  >= 60 * 20) and (match_duration < 60 * 21))
     return ended_at_20 * surrendered(match)
 
 
@@ -57,27 +57,45 @@ def get_lowest_tier(tiers_list):
     return lowest_tier
 
 
-def extract_tier(match):
+def get_most_common_tier(tiers_list):
     '''Extract the most common highestAchievedSeasonTier of players in match'''
-    count = Counter([x["highestAchievedSeasonTier"] for x in match["participants"]])
+    count = Counter(tiers_list)
     try:
         most_common = count.most_common()[0][0]
     except:
         most_common = "NA"
     return most_common
 
+def extract_patch(match_version):
+    '''Extracts the patch version in format X.XX'''
+    return str(re.findall("([0-9]+\.[0-9]+)\.", match_version)[0])
+
+def extract_minor_patch(match_version):
+    '''Extracts the minor patch version as numeric value'''
+    return int(re.findall("[0-9]+\.([0-9]+)\.", match_version)[0])
+
+def extract_major_patch(match_version):
+    '''Extracts the major patch version as numeric value.
+        This is equal to the season count.
+    '''
+    return int(re.findall("([0-9]+)\.[0-9]+\.", match_version)[0])
+
+
 
 def extract_match_infos(match):
     """Extract additional information from the raw match data
     """
     extractions = {}
-    extractions["patchMajorNumeric"] = int(re.findall("([0-9]+)\.[0-9]+\.", match["matchVersion"])[0])
-    extractions["patchMinorNumeric"] = int(re.findall("[0-9]+\.([0-9]+)\.", match["matchVersion"])[0])
-    extractions["patch"] = str(re.findall("([0-9]+\.[0-9]+)\.", match["matchVersion"])[0])
-    extractions["tier"] = extract_tier(match)
+
+    extractions["patchMajorNumeric"] = extract_major_patch(match["matchVersion"])
+    extractions["patchMinorNumeric"] = extract_minor_patch(match["matchVersion"])
+    extractions["patch"] = extract_patch(match["matchVersion"])
+
     tiers = [x["highestAchievedSeasonTier"] for x in match["participants"]]
+    extractions["tier"] = get_most_common_tier(tiers)
     extractions["highestPlayerTier"] = get_highest_tier(tiers)
     extractions["lowestPlayerTier"] = get_lowest_tier(tiers)
+
     extractions['surrendered'] = surrendered(match)
     extractions['surrenderedAt20'] = surrendered_at_20(match)
     return extractions
