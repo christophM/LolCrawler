@@ -167,7 +167,7 @@ class LolCrawler(LolCrawlerBase):
 
     def crawl(self):
         summoner_id = self.summoner_ids.pop()
-        logger.info("Crawling summoner {summoner_id}".format(summoner_id=summoner_id))
+        logger.debug("Crawling summoner {summoner_id}".format(summoner_id=summoner_id))
 
         try:
             match_ids = self.crawl_matchlist(summoner_id)
