@@ -18,6 +18,11 @@ Start crawling:
 python crawl.py
 ```
 
+If you want to specifically crawl yesterdays challenger and master matches in euw, na and kr, do:
+```bash
+python crawl.py top
+```
+
 Run the script in the background by using nohup:
 ```bash
 nohup python -u crawl.py &
@@ -61,6 +66,10 @@ python aggregate.py reprocess
 
 
 ## Changelog
+
+### v0.8
+- Now there are two crawler versions: One that does a random walk through the summoners, the other systematically crawls challenger and master matches
+- Included the 'extract'-module that enriches the matches with additional information
 
 ### v0.7
 - Added script that creates a MongodB table with champion statistics by processing the matches.
