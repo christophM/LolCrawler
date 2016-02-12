@@ -209,13 +209,10 @@ class TopLolCrawler(LolCrawler):
         self.summoner_ids = [x["playerOrTeamId"] for x in league_list["entries"]]
         return None
 
-    # def _get_top_teams(region, league, season):
-    #     pass
-
 
     def _get_top_summoner_matchlists(self, region, league, season):
         '''Download and store matchlists for self.summoner_ids'''
-        for summoner_id in self.summoner_ids:
+        for summoner_id in list(set(self.summoner_ids)):
             try:
                 begin_time = self._get_matchlist_end_time(summoner_id, self.begin_time)
                 self.crawl_complete_matchlist(summoner_id=summoner_id,
