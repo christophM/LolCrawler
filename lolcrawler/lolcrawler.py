@@ -131,9 +131,9 @@ class LolCrawlerBase():
             logger.debug('Crawling match %s' % (match_id))
             wait_for_api(self.api)
             match = self.api.get_match(match_id=match_id, include_timeline=self.include_timeline, region=region)
-            match["extractions"] = extract_match_infos(match)
-            self._store(identifier=match_id, entity_type=MATCH_COLLECTION, entity=match)
             try:
+                match["extractions"] = extract_match_infos(match)
+                self._store(identifier=match_id, entity_type=MATCH_COLLECTION, entity=match)
                 summoner_ids = [x['player']['summonerId'] for x in match['participantIdentities']]
                 ## remove summoner ids the crawler has already seen
                 new_summoner_ids = list(set(summoner_ids) - set(self.summoner_ids_done))
@@ -243,10 +243,10 @@ class TopLolCrawler(LolCrawler):
             min_time = min(match_times)
             max_time = max(match_times)
             ## In case the stored matchlist is dated later than begin_time. Not ideal solution
-            if min_time > begin_time:
+            if (min_time > begin_time) or (begin_time > max_time):
                 return begin_time
             else:
-                logger.debug('Matchlist of summoner %s partially crawled, starting diff %s h later' % (summoner_id, max_time - begin_time / (1000 * 60  * 60)))
+                logger.debug('Matchlist of summoner %s partially crawled, starting diff %.0f h later' % (summoner_id, (max_time - begin_time) / (1000 * 60  * 60)))
                 return max(begin_time, max_time)
 
     def _get_top_summoners_matches(self, region):
