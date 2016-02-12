@@ -32,17 +32,6 @@ MATCH_COLLECTION = "match"
 MATCHLIST_PAGE_LIMIT = 60
 
 
-## TODO: Extend crawl.py script with new Crawler
-## TODO: Remove crawl-top-matches.py again
-## TODO: Write some tests
-## TODO: Add index to summoner_id in matchlist
-## OPTIONAL TODO: Create own extract module
-## OPTIONAL TODO: Create constants module
-## OPTIONAL TODO: Extraction should work like aggregate.py
-## OPTIONAL TODO: Parallel processing in TopCrawler
-## OPTIONAL TODO: Threads in lolcrawler
-
-
 class LolCrawlerBase():
     """Crawler base class for all crawlers"""
 
