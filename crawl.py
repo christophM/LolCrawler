@@ -1,10 +1,14 @@
-from lolcrawler.lolcrawler import LolCrawler
+from lolcrawler.lolcrawler import LolCrawler, TopLolCrawler
 from riotwatcher import RiotWatcher, RateLimit
 from config import config
 from pymongo import MongoClient
-
+from datetime import date, timedelta
+from clint import arguments
 
 if __name__=="__main__":
+
+    args = arguments.Args()
+    action = args.get(0)
 
     ## Connect to MongoDB database
     client = MongoClient(config['mongodb']['host'], config['mongodb']['port'])
@@ -24,9 +28,18 @@ if __name__=="__main__":
 
     api = RiotWatcher(config['api_key'], default_region=region, limits=limits)
 
-    ## Initialise crawler
-    crawler =  LolCrawler(api, db_client=db, include_timeline=config["include_timeline"])
 
-    crawler.start(config['summoner_seed_id'])
+    if action=="top":
+        yesterday = date.today() - timedelta(1)
+        crawler = TopLolCrawler(api,db_client=db, include_timeline=config["include_timeline"])
+        crawler.start(begin_time=yesterday,
+                      regions=['euw', 'na', 'kr'])
+    else:
+        ## Initialise crawler
+        crawler =  LolCrawler(api, db_client=db, include_timeline=config["include_timeline"])
+        crawler.start(config['summoner_seed_id'])
+
+
+
 
 
