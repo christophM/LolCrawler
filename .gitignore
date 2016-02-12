@@ -5,3 +5,6 @@ config.local.py
 .ipynb_checkpoints/
 *.ipynb
 crawler.log
+.cache
+\#*\#
+.\#*
