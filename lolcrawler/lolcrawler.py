@@ -8,6 +8,7 @@ import logging
 import time
 import datetime
 import itertools
+from requests.exceptions import SSLError
 from riotwatcher import LoLException
 from .extract_match import extract_match_infos
 
@@ -31,8 +32,6 @@ MATCH_COLLECTION = "match"
 MATCHLIST_PAGE_LIMIT = 60
 
 
-## TODO: Crawling of RANKED_TEAM_5x5 in ChallengerLolCrawler
-## TODO: Use riotwatcher: use constants
 ## TODO: Extend crawl.py script with new Crawler
 ## TODO: Remove crawl-top-matches.py again
 ## TODO: Write some tests
@@ -226,6 +225,8 @@ class TopLolCrawler(LolCrawler):
                                               season=season)
             except LoLException as e:
                 logger.error(e)
+            except SSLError as e:
+                logger.error(e)
         return None
 
     def _get_matchlist_end_time(self, summoner_id, begin_time):
@@ -250,10 +251,12 @@ class TopLolCrawler(LolCrawler):
                 return max(begin_time, max_time)
 
     def _get_top_summoners_matches(self, region):
-        for match_id in self.match_ids:
+        for match_id in list(set(self.match_ids)):
             try:
                 self.crawl_match(match_id, region=region)
             except LoLException as e:
+                logger.error(e)
+            except SSLError as e:
                 logger.error(e)
         return None
 
