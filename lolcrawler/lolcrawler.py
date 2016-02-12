@@ -203,10 +203,9 @@ class TopLolCrawler(LolCrawler):
         '''Download and store matchlists for self.summoner_ids'''
         for summoner_id in list(set(self.summoner_ids)):
             try:
-                begin_time = self._get_matchlist_end_time(summoner_id, self.begin_time)
                 self.crawl_complete_matchlist(summoner_id=summoner_id,
                                               region=region,
-                                              begin_time=begin_time,
+                                              begin_time=self.begin_time,
                                               end_time=self.end_time,
                                               season=season)
             except LoLException as e:
@@ -214,27 +213,6 @@ class TopLolCrawler(LolCrawler):
             except SSLError as e:
                 logger.error(e)
         return None
-
-    def _get_matchlist_end_time(self, summoner_id, begin_time):
-        '''Get the latest end time of matchlist of summoner in db. Returns begin_time if
-           nothing found or begin_time after latest entry
-        '''
-        matchlist = self.db_client[MATCHLIST_COLLECTION].find_one({'_id': summoner_id})
-
-        if matchlist is None:
-            return begin_time
-        elif len(matchlist['matches']) == 0:
-            return begin_time
-        else:
-            match_times = [match['timestamp'] for match in matchlist['matches']]
-            min_time = min(match_times)
-            max_time = max(match_times)
-            ## In case the stored matchlist is dated later than begin_time. Not ideal solution
-            if (min_time > begin_time) or (begin_time > max_time):
-                return begin_time
-            else:
-                logger.debug('Matchlist of summoner %s partially crawled, starting diff %.0f h later' % (summoner_id, (max_time - begin_time) / (1000 * 60  * 60)))
-                return max(begin_time, max_time)
 
     def _get_top_summoners_matches(self, region):
         for match_id in list(set(self.match_ids)):
@@ -248,7 +226,7 @@ class TopLolCrawler(LolCrawler):
 
     def start(self,
               begin_time,
-              regions=['euw', 'eune', 'kr', 'na'],
+              regions=['euw', 'kr', 'na'],
               end_time = int(time.time() * 1000),
               leagues=['challenger', 'master'],
               seasons=["SEASON2016"]
