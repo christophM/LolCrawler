@@ -6,7 +6,7 @@ from pymongo.errors import DuplicateKeyError, ServerSelectionTimeoutError
 import pymongo
 import logging
 import time
-import datetime
+from datetime import datetime, date, timedelta
 import itertools
 from requests.exceptions import SSLError
 from riotwatcher import LoLException
@@ -116,8 +116,8 @@ class LolCrawlerBase():
         ## Check if match is in database and only crawl if not in database
         match_in_db = self.db_client[MATCH_COLLECTION].find({"_id": match_id})
         if match_in_db.count() == 0:
-            logger.debug('Crawling match %s' % (match_id))
             wait_for_api(self.api)
+            logger.debug('Crawling match %s' % (match_id))
             match = self.api.get_match(match_id=match_id, include_timeline=self.include_timeline, region=region)
             try:
                 match["extractions"] = extract_match_infos(match)
@@ -225,18 +225,24 @@ class TopLolCrawler(LolCrawler):
         return None
 
     def start(self,
-              begin_time,
+              begin_time=date.today() - timedelta(1),
               regions=['euw', 'kr', 'na'],
-              end_time = int(time.time() * 1000),
+              end_time = date.today(),
               leagues=['challenger', 'master'],
               seasons=["SEASON2016"]
               ):
 
         self.begin_time = int(begin_time.strftime('%s')) * 1000
-        self.end_time = end_time
+        self.end_time = int(end_time.strftime('%s')) * 1000
+
+        begin_time_log = datetime.fromtimestamp(self.begin_time / 1000)
+        end_time_log = datetime.fromtimestamp(self.end_time / 1000)
+
+        logger.info('Crawling matches between %s and %s' % (begin_time_log, end_time_log))
 
         for region, league, season in itertools.product(regions, leagues, seasons):
             self.crawl(region=region, league=league, season=season)
+        logger.info('Finished crawling')
 
 def wait_for_api(api):
     while not api.can_make_request:
