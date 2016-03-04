@@ -1,6 +1,6 @@
 import re
 from collections import Counter
-
+from datetime import date
 
 TIER_ORDER = {"CHALLENGER": 7,
               "MASTER": 6,
@@ -42,6 +42,44 @@ def surrendered_at_20(match):
     return ended_at_20 * surrendered(match)
 
 
+def get_winner_by_member(member_id, winner_team):
+    '''Return True if member won the game'''
+    winner_100 = int(winner_team) == 100
+    team_100_member = int(member_id) in [1,2,3,4,5]
+    return winner_100== team_100_member
+
+
+
+def filter_monster_events(match, monster_type='BARON_NASHOR'):
+    '''Filter monster kill events from timeline'''
+    monster_events = []
+    frames = match['timeline']['frames']
+    for frame in match['timeline']['frames']:
+        if 'events' in frame.keys():
+            for event in frame['events']:
+                if event['eventType'] == 'ELITE_MONSTER_KILL' :
+                    if event['monsterType'] == monster_type:
+                        monster_events.append(event)
+    return monster_events
+
+def win_while_baron_buff(match, buff_duration_sec=4*60):
+    '''Did the winner win during Baron Buff?'''
+    ## Get winner
+    ## Filter Baron events
+    baron_events = filter_monster_events(match, monster_type='BARON_NASHOR')
+    if len(baron_events) == 0:
+        return False
+    last_baron = baron_events[len(baron_events) - 1]
+    ## Filter baron events within 3 minutes before win time
+    match_duration = match['matchDuration']
+    ## check if winner had the buff
+    baron_killer_id = last_baron['killerId']
+    winner_team = 100 if match['teams'][0]['winner'] else 200
+    baron_killer_won = get_winner_by_member(baron_killer_id, winner_team)
+    end_while_baron_buff = match_duration <= (last_baron['timestamp']/1000 + buff_duration_sec)
+    return (baron_killer_won and end_while_baron_buff)
+
+
 def get_highest_tier(tiers_list):
     '''Extract highest tier in tiers_list'''
     ## Filter keys that appeared in the match
@@ -81,12 +119,10 @@ def extract_major_patch(match_version):
     return int(re.findall("([0-9]+)\.[0-9]+\.", match_version)[0])
 
 
-
 def extract_match_infos(match):
     """Extract additional information from the raw match data
     """
     extractions = {}
-
     extractions["patchMajorNumeric"] = extract_major_patch(match["matchVersion"])
     extractions["patchMinorNumeric"] = extract_minor_patch(match["matchVersion"])
     extractions["patch"] = extract_patch(match["matchVersion"])
@@ -98,7 +134,12 @@ def extract_match_infos(match):
 
     extractions['surrendered'] = surrendered(match)
     extractions['surrenderedAt20'] = surrendered_at_20(match)
+
+    ## Timeline extractions
+    if 'timeline' in match.keys():
+        extractions['winDuringBaronBuff'] = win_while_baron_buff(match)
     return extractions
+
 
 
 

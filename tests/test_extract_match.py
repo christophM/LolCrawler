@@ -1,5 +1,14 @@
 from lolcrawler import extract_match
+import json
 
+
+with open('data/match_1.json') as data_file:
+    ## Match with baron win, EUW
+    match_1 = json.load(data_file)
+
+with open('data/match_2.json') as data_file:
+    ##
+    match_2 = json.load(data_file)
 
 
 short_match = {'matchDuration': 15 * 60}
@@ -92,3 +101,10 @@ def test_minor_patch():
 
 def test_minor_patch2():
     assert extract_match.extract_minor_patch('5.24.123.93') == 24
+
+
+def test_baron_win_true():
+    assert extract_match.win_while_baron_buff(match_1) == True
+
+def test_baron_win_false():
+    assert extract_match.win_while_baron_buff(match_2) == False
