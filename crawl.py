@@ -32,7 +32,7 @@ if __name__=="__main__":
     if action=="top":
         yesterday = date.today() - timedelta(1)
         crawler = TopLolCrawler(api,db_client=db, include_timeline=config["include_timeline"])
-        crawler.start(regions=['euw', 'na', 'kr'])
+        crawler.start(regions=['euw', 'na', 'kr', 'eune'], leagues=['challenger'])
     else:
         ## Initialise crawler
         crawler =  LolCrawler(api, db_client=db, include_timeline=config["include_timeline"])
