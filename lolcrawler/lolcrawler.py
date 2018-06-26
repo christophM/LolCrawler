@@ -107,7 +107,7 @@ class LolCrawlerBase():
         return match_ids
 
 
-    def crawl_match(self, match_id, region=None):
+    def crawl_match(self, match_id):
         """Crawl match with given match_id,
         stores it and saves the matchID"""
         ## Check if match is in database and only crawl if not in database
@@ -205,10 +205,10 @@ class TopLolCrawler(LolCrawler):
                 logger.error(e)
         return None
 
-    def _get_top_summoners_matches(self, region):
+    def _get_top_summoners_matches(self):
         for match_id in list(set(self.match_ids)):
             try:
-                self.crawl_match(match_id, region=region)
+                self.crawl_match(match_id)
             except LoLException as e:
                 logger.error(e)
             except SSLError as e:
