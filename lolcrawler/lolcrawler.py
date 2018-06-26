@@ -9,7 +9,6 @@ import time
 from datetime import datetime, date, timedelta
 import itertools
 from requests.exceptions import SSLError
-from riotwatcher import LoLException
 from .extract_match import extract_match_infos
 
 logger = logging.getLogger(__name__)
@@ -35,9 +34,8 @@ MATCHLIST_PAGE_LIMIT = 60
 class LolCrawlerBase():
     """Crawler base class for all crawlers"""
 
-    def __init__(self, api, db_client, include_timeline=False):
+    def __init__(self, api, db_client, region, include_timeline=False):
         self.api = api
-        self.region = api.default_region
         self.include_timeline = include_timeline
         ## Stack of summoner ids to crawl
         self.summoner_ids = []
@@ -46,6 +44,7 @@ class LolCrawlerBase():
         self.match_ids = []
         self.match_ids_done = []
         self.db_client = db_client
+	self.region = region
 
 
     def _store(self, identifier, entity_type, entity, upsert=False):
@@ -66,16 +65,15 @@ class LolCrawlerBase():
         self.summoner_ids = []
         self.match_ids = []
 
-    def crawl_matchlist(self, summoner_id, region=None,  **kwargs):
+    def crawl_matchlist(self, summoner_id):
         """Crawls matchlist of given summoner,
         stores it and saves the matchIds"""
         logger.debug('Getting partial matchlist of summoner %s' % (summoner_id))
-        wait_for_api(self.api)
-        matchlist = self.api.get_match_list(summoner_id, region=region,  **kwargs)
+        matchlist = self.api.match.matchlist_by_account(account_id = summoner_id, region = self.region)
         matchlist["extractions"] = {"region": self.region}
         self._store(identifier=summoner_id, entity_type=MATCHLIST_COLLECTION, entity=matchlist, upsert=True)
         self.summoner_ids_done.append(summoner_id)
-        match_ids = [x['matchId'] for x in matchlist['matches']]
+        match_ids = [x['gameId'] for x in matchlist['matches']]
         self.match_ids.extend(match_ids)
         return match_ids
 
@@ -89,7 +87,6 @@ class LolCrawlerBase():
         matchlist={"matches": [], "totalGames": 0}
         begin_index=0
         while more_matches:
-            wait_for_api(self.api)
             new_matchlist = self.api.get_match_list(summoner_id=summoner_id,
                                                     begin_index=begin_index,
                                                     end_index=begin_index + MATCHLIST_PAGE_LIMIT,
@@ -105,7 +102,7 @@ class LolCrawlerBase():
         matchlist["extractions"] = {"region": region}
         self._store(identifier=summoner_id, entity_type=MATCHLIST_COLLECTION, entity=matchlist, upsert=True)
         self.summoner_ids_done.append(summoner_id)
-        match_ids = [x['matchId'] for x in matchlist['matches']]
+        match_ids = [x['gameId'] for x in matchlist['matches']]
         self.match_ids.extend(match_ids)
         return match_ids
 
@@ -116,9 +113,8 @@ class LolCrawlerBase():
         ## Check if match is in database and only crawl if not in database
         match_in_db = self.db_client[MATCH_COLLECTION].find({"_id": match_id})
         if match_in_db.count() == 0:
-            wait_for_api(self.api)
             logger.debug('Crawling match %s' % (match_id))
-            match = self.api.get_match(match_id=match_id, include_timeline=self.include_timeline, region=region)
+            match = self.api.match.by_id(match_id=match_id, region=self.region)
             try:
                 match["extractions"] = extract_match_infos(match)
                 self._store(identifier=match_id, entity_type=MATCH_COLLECTION, entity=match)
@@ -158,15 +154,11 @@ class LolCrawler(LolCrawlerBase):
         summoner_id = self.summoner_ids.pop()
         logger.debug("Crawling summoner {summoner_id}".format(summoner_id=summoner_id))
 
-        try:
-            match_ids = self.crawl_matchlist(summoner_id)
-            ## Choose from last ten matches
-            random_match_id = np.random.choice(range(0, min(10, len(match_ids))))
-            match_id = match_ids[random_match_id]
-            self.crawl_match(match_id)
-        except LoLException as e:
-            logger.error(e)
-            self.crawl()
+        match_ids = self.crawl_matchlist(summoner_id)
+        ## Choose from last ten matches
+        random_match_id = np.random.choice(range(0, min(10, len(match_ids))))
+        match_id = match_ids[random_match_id]
+        self.crawl_match(match_id)
 
 
 
@@ -190,7 +182,6 @@ class TopLolCrawler(LolCrawler):
 
     def _get_top_summoner_ids(self, region, league, season):
         queue = "RANKED_SOLO_5x5"
-        wait_for_api(self.api)
         if league == 'challenger':
             league_list = self.api.get_challenger(region=region, queue=queue)
         elif league == 'master':
@@ -244,8 +235,3 @@ class TopLolCrawler(LolCrawler):
             self.crawl(region=region, league=league, season=season)
         logger.info('Finished crawling')
 
-def wait_for_api(api):
-    while not api.can_make_request:
-        logger.info('Reached API limit, waiting 0.1 seconds')
-        sys.Sleep(0.1)
-    return None

@@ -1,5 +1,5 @@
 from lolcrawler.lolcrawler import LolCrawler, TopLolCrawler
-from riotwatcher import RiotWatcher, RateLimit
+from riotwatcher import RiotWatcher
 from config import config
 from pymongo import MongoClient
 from datetime import date, timedelta
@@ -21,21 +21,21 @@ if __name__=="__main__":
 
     region=config["region"]
 
-    if config['is_production_key']:
-        limits = (RateLimit(3000,10), RateLimit(180000,600), )
-    else:
-        limits = (RateLimit(10, 10), RateLimit(500, 600), )
+    #if config['is_production_key']:
+    #    limits = (Limit(3000,10), Limit(180000,600), )
+    #else:
+    #    limits = (Limit(10, 10), Limit(500, 600), )
 
-    api = RiotWatcher(config['api_key'], default_region=region, limits=limits)
+    api = RiotWatcher(config['api_key'])
 
 
     if action=="top":
         yesterday = date.today() - timedelta(1)
         crawler = TopLolCrawler(api,db_client=db, include_timeline=config["include_timeline"])
-        crawler.start(regions=['euw', 'na', 'kr', 'eune'], leagues=['challenger'])
+        crawler.start(regions=['euw1', 'na', 'kr', 'eune'], leagues=['challenger'])
     else:
         ## Initialise crawler
-        crawler =  LolCrawler(api, db_client=db, include_timeline=config["include_timeline"])
+        crawler =  LolCrawler(api, db_client=db, include_timeline=config["include_timeline"], region = "euw1")
         crawler.start(config['summoner_seed_id'])
 
 
